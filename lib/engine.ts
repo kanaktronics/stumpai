@@ -252,6 +252,8 @@ export function mctsSelectBestQuestion(
   options: SelectableQuestion[],
 ): { question: SelectableQuestion; gain: number; debugInfo: { pYes: number; splitQuality: number } } | null {
   let bestQ: SelectableQuestion | null = null;
+  let maxGain = -1;
+  let bestDebug = { pYes: 0, splitQuality: 0 };
   const currentEntropy = computeEntropy(state.probabilities);
 
   // ── DYNAMIC OBJECTIVE SWITCHING & HIERARCHICAL REASONING ───────────
