@@ -1,0 +1,212 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #1a1b22;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+}
+
+.era {
+  font-size: 11px;
+  background: #f2f3fd;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  margin-bottom: 16px;
+  font-weight: 700;
+  color: #424753;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  background: #f2f3fd;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  margin-bottom: 24px;
+  border: 4px solid #ffffff;
+  box-shadow: var(--shadow-l1);
+}
+
+.name {
+  font-size: 40px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #727785;
+  background: #f2f3fd;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.gold { color: var(--tertiary); background: rgba(251, 188, 4, 0.1); }
+.orange { color: #f57c00; background: rgba(245, 124, 0, 0.1); }
+.purple { color: #7b1fa2; background: rgba(123, 31, 162, 0.1); }
+
+.identityTags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.identityTag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--primary);
+  border: 1px solid rgba(66, 133, 244, 0.2);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.dna {
+  width: 100%;
+  max-width: 400px;
+  background: #f9f9ff;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.dnaTitle {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #727785;
+  margin-bottom: 16px;
+}
+
+.dnaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dnaLabel {
+  font-size: 11px;
+  font-weight: 600;
+  width: 90px;
+}
+
+.dnaBarBg {
+  flex: 1;
+  height: 6px;
+  background: #ecedf7;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.dnaBarFill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+}
+
+.dnaVal {
+  font-size: 10px;
+  font-weight: 700;
+  width: 30px;
+  color: #727785;
+}
+
+.reasoning {
+  width: 100%;
+  background: #fffdf2;
+  border-left: 4px solid var(--tertiary);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.reasoningTitle { font-size: 14px; font-weight: 800; margin-bottom: 8px; }
+.reasoningText { font-size: 13px; color: #424753; line-height: 1.6; }
+
+.famousFor {
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 600;
+  color: #1a1b22;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.conf { font-size: 14px; color: #727785; margin-bottom: 8px; }
+.question { font-size: 20px; font-weight: 800; margin-bottom: 24px; }
+
+.actions {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.btn {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.correct { background: var(--success); }
+.wrong { background: #e2e4ed; color: #424753; }
+
+.restart {
+  margin-top: 24px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 40px;
+  }
+  .name {
+    font-size: 28px;
+  }
+  .famousFor {
+    font-size: 16px;
+  }
+  .dna {
+    padding: 16px;
+  }
+  .reasoning {
+    padding: 16px;
+  }
+  .actions {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+.next/
+
+# Environment — NEVER commit real keys
+.env.local
+.env.*.local
+service-account.json
+
+# Misc
+.DS_Store
+*.log
+.vercel
+
+.vercel

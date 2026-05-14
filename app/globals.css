@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Surface Colors */
+  --surface: #FFFFFF;
+  --surface-low: #f2f3fd;
+  --surface-container: #ecedf7;
+  --on-surface: #191b22;
+  --on-surface-variant: #424753;
+  --outline: #727785;
+  --outline-variant: #c2c6d5;
+
+  /* Brand Colors (Google Inspired) */
+  --primary: #0058bd; /* Google Blue */
+  --on-primary: #ffffff;
+  --secondary: #d93025; /* Google Red */
+  --tertiary: #fbbc04; /* Google Yellow */
+  --success: #188038; /* Google Green */
+  --accent-blue: #4285f4;
+  --accent-gold: #fbbc04;
+
+  /* Spacing & Radii */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+  --container-max: 1200px;
+
+  /* Elevation */
+  --shadow-l1: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-l2: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-l3: 0 12px 48px rgba(0, 0, 0, 0.12);
+
+  --font-main: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--surface);
+  color: var(--on-surface);
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+button {
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-glow::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(66, 133, 244, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}

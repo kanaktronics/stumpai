@@ -1,0 +1,29 @@
+{
+  "name": "stump-ai-ipl-oracle",
+  "version": "4.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^8.3.0",
+    "@google/generative-ai": "^0.21.0",
+    "@upstash/vector": "^1.2.3",
+    "dotenv": "^17.4.2",
+    "firebase": "^11.7.1",
+    "framer-motion": "^12.10.0",
+    "lucide-react": "^0.511.0",
+    "next": "15.3.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}
