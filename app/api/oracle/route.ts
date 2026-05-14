@@ -184,8 +184,8 @@ export async function POST(req: NextRequest) {
     else if (conf >= 40) interpretation = "DEEP NEURAL SCANNING...";
     else interpretation = "BROAD SPECTRUM ANALYSIS...";
 
-    // PDF Rule: ≤ 12 total, but Engine Loop says "strict maximum of 8 questions"
-    const MAX_QUESTIONS  = 8; 
+    // PDF Rule: ≤ 12 total questions
+    const MAX_QUESTIONS  = 12; 
     const questionsMaxed = rawHistory.length >= MAX_QUESTIONS;
     
     const poolExhausted   = (state.activePool?.length ?? 0) <= 1;
@@ -201,11 +201,17 @@ export async function POST(req: NextRequest) {
     
     const shouldGuess = canGuess && (canEarlyGuess || canMaxGuess || poolExhausted);
 
-    // CINEMATIC: If we reach turn 8 but confidence is low, we REFUSE to guess blindly
-    const refuseToGuess = questionsMaxed && canGuess && !shouldGuess;
+    // CINEMATIC: If we are deep into the game (turn 8+) but confidence is low, 
+    // the Oracle refuses to guess blindly and DEMANDS more information.
+    if (rawHistory.length >= 8 && !shouldGuess) {
+      interpretation = "THE ORACLE REFUSES TO GUESS BLINDLY. I MUST DIG DEEPER.";
+    }
 
-    // Handle Refusal
-    if (refuseToGuess) {
+    const topCandidates = getTopCandidates(state, 3);
+
+    // If we've hit a dead end (0 survivors) or reached absolute max questions without confidence,
+    // we return the STUMPED state early.
+    if ((state.activePool.length === 0 || (questionsMaxed && !shouldGuess)) && !shouldGuess) {
       return NextResponse.json({
         turn_metadata: { 
             question_index: rawHistory.length, 
@@ -213,31 +219,7 @@ export async function POST(req: NextRequest) {
             confidence_percentage: conf,
             eliminated_count: eliminatedThisTurn 
         },
-        oracle_output: { 
-            question: "My vision is clouded.", 
-            flavor_text: "THE ORACLE REFUSES TO GUESS BLINDLY.", 
-            is_stumped: true 
-        },
-        inference_leaderboard: [],
-        system_state: { trigger_final_guess: false, final_guess_payload: null, is_stumped: true },
-        updated_state: state
-      });
-    }
-
-    const topCandidates = getTopCandidates(state, 3);
-
-
-    // If we've hit a dead end (0 survivors) but aren't forced to guess yet,
-    // we return the STUMPED state early.
-    if (state.activePool.length === 0 && !shouldGuess) {
-      return NextResponse.json({
-        turn_metadata: { 
-            question_index: rawHistory.length, 
-            active_pool_size: 0, 
-            confidence_percentage: 0,
-            eliminated_count: eliminatedThisTurn 
-        },
-        oracle_output: { question: "I'm stumped!", flavor_text: interpretation, is_stumped: true },
+        oracle_output: { question: "The vision fades completely.", flavor_text: "THE ORACLE IS TRULY STUMPED.", is_stumped: true },
         inference_leaderboard: [],
         system_state: { trigger_final_guess: false, final_guess_payload: null, is_stumped: true },
         updated_state: state
