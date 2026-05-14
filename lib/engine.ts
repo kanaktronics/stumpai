@@ -113,6 +113,12 @@ export function updateProbabilities(
   if (total > 0) {
     for (const id of Object.keys(newState.probabilities)) {
       newState.probabilities[id] /= total;
+      
+      // Strict Active Pool definition: Only keep candidates holding at least 0.05% of the probability mass.
+      // This fixes the "stuck at 811" frontend bug.
+      if (newState.probabilities[id] > 0.0005) {
+        newActivePool.push(id);
+      }
     }
   }
 
@@ -188,8 +194,13 @@ export function computeEntropy(probs: Record<string, number>): number {
 }
 
 /**
- * INFORMATION GAIN MCTS
- * Selects the question that maximizes the expected reduction in entropy.
+ * TRUE INFORMATION GAIN SELECTOR (Shannon IG)
+ * 
+ * For each candidate question Q, computes:
+ *   IG(Q) = H(current) - [ P(yes)*H(posterior|yes) + P(no)*H(posterior|no) ]
+ * 
+ * This is the exact algorithm used by Akinator and 20Q systems.
+ * Picks the question that creates the most even 50/50 split = maximum IG.
  */
 export interface SelectableQuestion {
   id: string;
@@ -200,41 +211,67 @@ export interface SelectableQuestion {
 export function mctsSelectBestQuestion(
   state: BayesianState,
   options: SelectableQuestion[],
-  sampleSize: number = 5
-): { question: SelectableQuestion; gain: number } | null {
+): { question: SelectableQuestion; gain: number; debugInfo: { pYes: number; splitQuality: number } } | null {
   let bestQ: SelectableQuestion | null = null;
   let maxGain = -1;
+  let bestDebug = { pYes: 0, splitQuality: 0 };
 
-  // Use a subset of candidates to estimate gain (speed)
-  const topCandidates = getTopCandidates(state, 50).map(c => c.player.id);
+  // Only operate over the active candidate pool (non-zero probability players)
+  const activeCandidates = state.activePool
+    .map(id => ({ id, player: PLAYERS.find(p => p.id === id)!, prob: state.probabilities[id] ?? 0 }))
+    .filter(c => c.player && c.prob > 0);
+
   const currentEntropy = computeEntropy(state.probabilities);
 
   options.forEach(opt => {
-    // Calculate P(Yes) vs P(No) for this question
+    // ── Step 1: Partition the pool into YES and NO groups ─────────────
+    const yesProbs: Record<string, number> = {};
+    const noProbs: Record<string, number> = {};
     let pYes = 0;
-    topCandidates.forEach(id => {
-      const p = PLAYERS.find(pl => pl.id === id)!;
-      const match = typeof opt.attr === 'function' ? opt.attr(p) : checkAttribute(p, opt.attr);
-      if (match) pYes += state.probabilities[id];
+    let pNo = 0;
+
+    activeCandidates.forEach(({ id, player, prob }) => {
+      const hasAttr = typeof opt.attr === 'function' ? opt.attr(player) : checkAttribute(player, opt.attr);
+      if (hasAttr) {
+        yesProbs[id] = prob;
+        pYes += prob;
+      } else {
+        noProbs[id] = prob;
+        pNo += prob;
+      }
     });
 
-    const pNo = 1 - pYes;
-    
-    // Expected Entropy: IG(Q) = H(S) - [pYes * H(S|Yes) + pNo * H(S|No)]
-    // We simplify: optimal questions split the pool 50/50.
-    const splitQuality = 1 - Math.abs(pYes - 0.5) * 2; // 1.0 is perfect 50/50 split
-    const gain = splitQuality * (opt.weight / 5);
+    // Skip degenerate questions that split 0/100 (useless)
+    if (pYes < 0.001 || pNo < 0.001) return;
 
-    // Add small randomization to break ties and ensure variety
-    const jitter = gain * (0.9 + Math.random() * 0.2);
+    // ── Step 2: Normalize each branch into a valid distribution ───────
+    const normYes: Record<string, number> = {};
+    const normNo: Record<string, number> = {};
+    for (const id in yesProbs) normYes[id] = yesProbs[id] / pYes;
+    for (const id in noProbs) normNo[id] = noProbs[id] / pNo;
+
+    // ── Step 3: Compute expected posterior entropy ─────────────────────
+    const hYes = computeEntropy(normYes);
+    const hNo  = computeEntropy(normNo);
+    const expectedPostEntropy = pYes * hYes + pNo * hNo;
+
+    // ── Step 4: True Information Gain ─────────────────────────────────
+    const ig = currentEntropy - expectedPostEntropy;
+
+    // Blend IG with question weight (cricket domain weight prevents trivial splits)
+    const weightedGain = ig * (0.85 + (opt.weight / 5) * 0.15);
+
+    // Small jitter to break ties
+    const jitter = weightedGain * (0.97 + Math.random() * 0.06);
 
     if (jitter > maxGain) {
       maxGain = jitter;
       bestQ = opt;
+      bestDebug = { pYes, splitQuality: 1 - Math.abs(pYes - 0.5) * 2 };
     }
   });
 
-  return bestQ ? { question: bestQ, gain: maxGain } : null;
+  return bestQ ? { question: bestQ, gain: maxGain, debugInfo: bestDebug } : null;
 }
 
 export function getTopCandidates(state: BayesianState, n: number = 3) {
