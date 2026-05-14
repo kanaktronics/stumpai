@@ -19,6 +19,14 @@ import { checkRateLimit } from '@/lib/ratelimit';
 const genAI  = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const gemini = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
+/** Abort a promise after `ms` milliseconds. Falls through to null on timeout. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>(resolve => setTimeout(() => resolve(null), ms))
+  ]);
+}
+
 /* ─── NLG: Gemini flavour-wraps the Bayesian question ────────────────────── */
 async function generateLoreQuestion(
   rawQuestion: string,
@@ -44,13 +52,18 @@ Question #${questionIndex + 1}
 Respond ONLY with valid JSON: {"question":"<created question>","hint":"${hint.replace(/"/g, "'")}"}`;
 
   try {
-    const result = await gemini.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
-    });
-    const text = result.response.text().trim().replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(text);
-    if (parsed.question) return { question: parsed.question, hint: parsed.hint ?? hint };
+    const result = await withTimeout(
+      gemini.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
+      }),
+      5000 // 5s timeout — fall back to raw question if Gemini is slow
+    );
+    if (result) {
+      const text = result.response.text().trim().replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(text);
+      if (parsed.question) return { question: parsed.question, hint: parsed.hint ?? hint };
+    }
   } catch { /* fall through to raw */ }
 
   return { question: rawQuestion, hint };

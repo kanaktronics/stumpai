@@ -128,8 +128,12 @@ export function updateProbabilities(
     const cache = getEmbeddingCache(PLAYERS);
     const topVec = cache.get(topId);
     if (topVec) {
-      // Apply a similarity-weighted survival boost (very subtle — 1–3% max)
-      for (const id of newState.activePool) {
+  // Apply similarity boost to top 200 candidates only (performance cap)
+  const topPoolForBoost = newState.activePool
+    .sort((a, b) => (newState.probabilities[b] ?? 0) - (newState.probabilities[a] ?? 0))
+    .slice(0, 200);
+
+  for (const id of topPoolForBoost) {
         const vec = cache.get(id);
         if (!vec || id === topId) continue;
         const sim = cosineSimilarity(topVec, vec);
@@ -238,10 +242,12 @@ export function mctsSelectBestQuestion(
   let maxGain = -1;
   let bestDebug = { pYes: 0, splitQuality: 0 };
 
-  // Only operate over the active candidate pool (non-zero probability players)
+  // Only operate over top 150 active candidates by probability (for speed).
   const activeCandidates = state.activePool
     .map(id => ({ id, player: PLAYERS.find(p => p.id === id)!, prob: state.probabilities[id] ?? 0 }))
-    .filter(c => c.player && c.prob > 0);
+    .filter(c => c.player && c.prob > 0)
+    .sort((a, b) => b.prob - a.prob)
+    .slice(0, 150);
 
   const currentEntropy = computeEntropy(state.probabilities);
 
