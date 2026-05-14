@@ -14,6 +14,7 @@ import {
 import { QUESTION_BANK, getPhaseQuestions } from '@/lib/questions';
 import { Player, Answer } from '@/lib/types';
 import { PLAYERS } from '@/lib/players';
+import { checkRateLimit } from '@/lib/ratelimit';
 
 const genAI  = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const gemini = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -131,8 +132,55 @@ Respond with ONLY valid JSON array: [{"id":"<player_id>","score":<0-100>}, ...]`
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // ── RATE LIMITING ──────────────────────────────────────────────────
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? req.headers.get('x-real-ip')
+      ?? 'unknown';
+
+    const rl = checkRateLimit(ip);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. The Oracle needs a moment to recover its vision.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '20',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(rl.resetAt / 1000)),
+            'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        }
+      );
+    }
+
+    // ── INPUT VALIDATION ─────────────────────────────────────────────
+    const rawBody = await req.text();
+    if (rawBody.length > 200_000) { // 200KB max body
+      return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
+    }
+
+    let body: any;
+    try { body = JSON.parse(rawBody); } catch {
+      return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    }
+
     const { state: rawState, history: rawHistory = [], questionId, answer } = body;
+
+    // Validate answer field
+    const VALID_ANSWERS = ['yes', 'no', 'maybe', 'dont-know'];
+    if (answer && !VALID_ANSWERS.includes(answer)) {
+      return NextResponse.json({ error: 'Invalid answer value.' }, { status: 400 });
+    }
+
+    // Validate questionId is a known question
+    if (questionId && !QUESTION_BANK.find(q => q.id === questionId)) {
+      return NextResponse.json({ error: 'Unknown questionId.' }, { status: 400 });
+    }
+
+    // Prevent state injection: cap history length
+    if (!Array.isArray(rawHistory) || rawHistory.length > 15) {
+      return NextResponse.json({ error: 'Invalid history.' }, { status: 400 });
+    }
 
     let state: BayesianState = rawState ?? initState();
     const prevActiveCount = (state.activePool ?? []).length;
