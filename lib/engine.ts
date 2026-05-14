@@ -99,30 +99,22 @@ export function updateProbabilities(
     }
 
     const jitter = 0.97 + Math.random() * 0.06; // ±3% jitter
-    newState.probabilities[player.id] = currentProb * multiplier * jitter;
-
-    if (newState.probabilities[player.id] > 1e-9) {
-      newActivePool.push(player.id);
-    } else {
-      newState.probabilities[player.id] = 0;
-    }
+    const updated = currentProb * multiplier * jitter;
+    newState.probabilities[player.id] = updated > 1e-9 ? updated : 0;
   });
 
-  // Normalize
+  // Normalize and compute the definitive active pool ONCE.
   const total = Object.values(newState.probabilities).reduce((a, b) => a + b, 0);
   if (total > 0) {
     for (const id of Object.keys(newState.probabilities)) {
       newState.probabilities[id] /= total;
-      
-      // Strict Active Pool definition: Only keep candidates holding at least 0.05% of the probability mass.
-      // This fixes the "stuck at 811" frontend bug.
-      if (newState.probabilities[id] > 0.0005) {
-        newActivePool.push(id);
-      }
     }
   }
 
-  newState.activePool = newActivePool;
+  // Active pool = players holding at least 0.05% of probability mass (post-normalization).
+  newState.activePool = Object.keys(newState.probabilities).filter(
+    id => newState.probabilities[id] > 0.0005
+  );
 
   // Phase transition by entropy
   const entropy = computeEntropy(newState.probabilities);
