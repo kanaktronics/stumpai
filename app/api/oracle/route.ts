@@ -281,7 +281,7 @@ export async function POST(req: NextRequest) {
     const mctsResult = mctsSelectBestQuestion(state, options);
     const bankQ = QUESTION_BANK.find(q => q.id === mctsResult?.question?.id) ?? QUESTION_BANK[0];
 
-    console.log(`[ORACLE IG] Selected Q: "${bankQ.id}" | IG Gain: ${mctsResult?.gain?.toFixed(4)} | pYes: ${(mctsResult?.debugInfo?.pYes * 100)?.toFixed(1)}% | SplitQuality: ${mctsResult?.debugInfo?.splitQuality?.toFixed(3)}`);
+    console.log(`[ORACLE IG] Selected Q: "${bankQ.id}" | IG Gain: ${mctsResult?.gain?.toFixed(4)} | pYes: ${((mctsResult?.debugInfo?.pYes ?? 0) * 100).toFixed(1)}% | SplitQuality: ${(mctsResult?.debugInfo?.splitQuality ?? 0).toFixed(3)}`);
 
     const { question: loreQuestion, hint: loreHint } = await generateLoreQuestion(
       bankQ.text, bankQ.hint, topCandidates, rawHistory.length
