@@ -64,8 +64,8 @@ export function updateProbabilities(
   if (answer === 'maybe') newState.maybeCount = (state.maybeCount || 0) + 1;
 
   const scoreYes   = 1.0;
-  const scoreMaybe = 0.45;
-  const scoreNo    = 0.001;
+  const scoreMaybe = 0.5;
+  const scoreNo    = 0.15; // Softened to prevent premature hypothesis collapse
 
   const newActivePool: string[] = [];
 
@@ -130,8 +130,10 @@ export function updateProbabilities(
 
 /**
  * COMPETITIVE CONFIDENCE CALCULATION
- * Formula: C = p1 / (p1 + p2 + p3)
- * Ensures certainty only when the top candidate truly separates from the pack.
+ * Computes a mathematically robust confidence score utilizing:
+ * 1. Competitive separation (p1 vs p2, p3)
+ * 2. Absolute probability strength (p1)
+ * 3. Shannon Entropy damping (prevents high confidence in flat distributions)
  */
 export function getTopConfidence(state: BayesianState): number {
   const sorted = Object.entries(state.probabilities)
@@ -147,8 +149,31 @@ export function getTopConfidence(state: BayesianState): number {
   // If top candidate is effectively zero, confidence is zero.
   if (p1 < 0.0001) return 0;
 
-  const confidence = p1 / (p1 + p2 + p3);
-  return confidence * 100;
+  const entropy = computeEntropy(state.probabilities);
+  
+  // 1. Competitive Ratio (Margin)
+  const competitiveRatio = p1 / (p1 + p2 + p3);
+  
+  // 2. Absolute Probability Penalty (Requires p1 to actually be significant)
+  const absolutePenalty = Math.min(1.0, p1 * 4); // p1 >= 0.25 removes penalty
+  
+  // 3. Entropy Damping (Max entropy is ~9.6)
+  const entropyDamping = Math.max(0, 1 - (entropy / 8.5));
+  
+  // Base raw confidence
+  let confidence = (competitiveRatio * 0.6 + entropyDamping * 0.4) * absolutePenalty * 100;
+  
+  // 4. CONFIDENCE SANITY CHECKER (Hard Caps)
+  if (entropy > 7.0) confidence = Math.min(confidence, 25);
+  else if (entropy > 5.5) confidence = Math.min(confidence, 55);
+  else if (entropy > 4.0) confidence = Math.min(confidence, 75);
+  else if (entropy > 2.0) confidence = Math.min(confidence, 86);
+  
+  if (p1 < 0.05) confidence = Math.min(confidence, 15);
+  else if (p1 < 0.15) confidence = Math.min(confidence, 45);
+  else if (p1 < 0.30) confidence = Math.min(confidence, 65);
+
+  return confidence;
 }
 
 /**

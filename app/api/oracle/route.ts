@@ -162,6 +162,20 @@ export async function POST(req: NextRequest) {
 
     // ── 3. Check for early termination (STRICT PDF RULES) ──────────
     const conf = getTopConfidence(state);
+    const currentEntropy = computeEntropy(state.probabilities);
+    const top10 = getTopCandidates(state, 10);
+    
+    console.log('\n======================================================');
+    console.log(`[ORACLE DEBUG] Turn ${rawHistory.length + 1} | Answer: ${answer ?? 'START'}`);
+    console.log(`- Active Pool Size: ${state.activePool?.length ?? 0}`);
+    console.log(`- Eliminated This Turn: ${eliminatedThisTurn}`);
+    console.log(`- Shannon Entropy: ${currentEntropy.toFixed(4)} (Max ~9.6)`);
+    console.log(`- Top Confidence: ${conf.toFixed(2)}%`);
+    console.log(`- Top 10 Candidates:`);
+    top10.forEach((c, idx) => {
+      console.log(`  ${idx + 1}. ${c.player.name.padEnd(20)} | P: ${(c.p_value * 100).toFixed(3)}%`);
+    });
+    console.log('======================================================\n');
     
     // Suggested Cinematic Logic
     let interpretation = "BROAD SPECTRUM ANALYSIS...";
