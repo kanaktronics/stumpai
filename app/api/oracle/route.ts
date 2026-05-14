@@ -245,7 +245,13 @@ export async function POST(req: NextRequest) {
       }).sort((a, b) => b.p_value - a.p_value);
 
       const topPlayer = finalCandidates[0].player;
-      const finalConf = finalCandidates[0].p_value * 100;
+      
+      // Calculate final competitive confidence AFTER reranking to match engine logic
+      const p1 = finalCandidates[0]?.p_value || 0;
+      const p2 = finalCandidates[1]?.p_value || 0;
+      const p3 = finalCandidates[2]?.p_value || 0;
+      const finalConf = p1 > 0.0001 ? (p1 / (p1 + p2 + p3)) * 100 : 0;
+      
       const { reasoning, famousFor } = await generateFinalGuess(topPlayer, finalConf, rawHistory);
       
       const payload = { 
