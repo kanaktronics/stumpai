@@ -1,5 +1,6 @@
 import { Player, IPLEra, Answer, Attr } from './types';
 import { PLAYERS } from './players';
+import { getEmbeddingCache, cosineSimilarity } from './embeddings';
 
 /* ──────────────────────────────────────────────────────────────────────────
    ENGINE ARCHITECTURE: PROBABILISTIC INFERENCE V5
@@ -115,6 +116,35 @@ export function updateProbabilities(
   newState.activePool = Object.keys(newState.probabilities).filter(
     id => newState.probabilities[id] > 0.0005
   );
+
+  // ── EMBEDDING SIMILARITY BONUS ────────────────────────────────────────
+  // Find the current top candidate and apply a small cosine-similarity bonus
+  // to their archetype neighbours. This prevents "Axar Patel" from being killed
+  // by a question intended to eliminate "Jadeja".
+  const topId = Object.entries(newState.probabilities)
+    .sort(([, a], [, b]) => b - a)[0]?.[0];
+
+  if (topId) {
+    const cache = getEmbeddingCache(PLAYERS);
+    const topVec = cache.get(topId);
+    if (topVec) {
+      // Apply a similarity-weighted survival boost (very subtle — 1–3% max)
+      for (const id of newState.activePool) {
+        const vec = cache.get(id);
+        if (!vec || id === topId) continue;
+        const sim = cosineSimilarity(topVec, vec);
+        // Boost scaled by similarity: max boost = 1.03x for sim=1.0
+        newState.probabilities[id] *= (1 + sim * 0.03);
+      }
+      // Re-normalize after boost
+      const boostedTotal = Object.values(newState.probabilities).reduce((a, b) => a + b, 0);
+      if (boostedTotal > 0) {
+        for (const id of Object.keys(newState.probabilities)) {
+          newState.probabilities[id] /= boostedTotal;
+        }
+      }
+    }
+  }
 
   // Phase transition by entropy
   const entropy = computeEntropy(newState.probabilities);
