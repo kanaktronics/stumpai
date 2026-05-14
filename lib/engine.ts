@@ -104,11 +104,24 @@ export function updateProbabilities(
     newState.probabilities[player.id] = updated > 1e-9 ? updated : 0;
   });
 
+  // ── POSTERIOR SHARPENING (Temperature Cooling) ─────────────────────
+  // Forces convergence by sharpening the distribution as the game progresses.
+  // Early turns: soft/forgiving. Late turns: aggressive commitment.
+  const turn = state.history.length;
+  let alpha = 1.0;
+  if (turn >= 4) alpha = 1.3;  // Warm
+  if (turn >= 7) alpha = 1.8;  // Cool
+  if (turn >= 10) alpha = 2.5; // Freezing (Hyper-aggressive)
+
   // Normalize and compute the definitive active pool ONCE.
-  const total = Object.values(newState.probabilities).reduce((a, b) => a + b, 0);
+  const rawProbs = Object.keys(newState.probabilities).map(id => ({
+    id, val: Math.pow(newState.probabilities[id], alpha)
+  }));
+  
+  const total = rawProbs.reduce((a, b) => a + b.val, 0);
   if (total > 0) {
-    for (const id of Object.keys(newState.probabilities)) {
-      newState.probabilities[id] /= total;
+    for (const { id, val } of rawProbs) {
+      newState.probabilities[id] = val / total;
     }
   }
 
@@ -239,17 +252,35 @@ export function mctsSelectBestQuestion(
   options: SelectableQuestion[],
 ): { question: SelectableQuestion; gain: number; debugInfo: { pYes: number; splitQuality: number } } | null {
   let bestQ: SelectableQuestion | null = null;
-  let maxGain = -1;
-  let bestDebug = { pYes: 0, splitQuality: 0 };
+  const currentEntropy = computeEntropy(state.probabilities);
 
-  // Only operate over top 150 active candidates by probability (for speed).
-  const activeCandidates = state.activePool
+  // ── DYNAMIC OBJECTIVE SWITCHING & HIERARCHICAL REASONING ───────────
+  // We change *what* we optimize based on the phase of the game.
+  let allSorted = state.activePool
     .map(id => ({ id, player: PLAYERS.find(p => p.id === id)!, prob: state.probabilities[id] ?? 0 }))
     .filter(c => c.player && c.prob > 0)
-    .sort((a, b) => b.prob - a.prob)
-    .slice(0, 150);
+    .sort((a, b) => b.prob - a.prob);
 
-  const currentEntropy = computeEntropy(state.probabilities);
+  let targetCandidates: typeof allSorted = [];
+
+  if (currentEntropy < 3.5 || state.history.length >= 8) {
+    // LATE GAME: Candidate-Pair Differentiator Engine
+    // Objective: Maximize separation between the top 5 candidates ONLY.
+    targetCandidates = allSorted.slice(0, 5);
+  } else if (currentEntropy < 6.5 || state.history.length >= 4) {
+    // MID GAME: Archetype Cluster Separation
+    // Objective: Separate the leading pack (Top 30).
+    targetCandidates = allSorted.slice(0, 30);
+  } else {
+    // EARLY GAME: Global Entropy Reduction
+    // Objective: Macro filtering (Top 150 for speed).
+    targetCandidates = allSorted.slice(0, 150);
+  }
+
+  // Re-normalize local probabilities for the target subset so IG math works correctly
+  const targetTotal = targetCandidates.reduce((sum, c) => sum + c.prob, 0);
+  const evaluatePool = targetCandidates.map(c => ({ ...c, prob: c.prob / targetTotal }));
+  const localEntropy = computeEntropy(Object.fromEntries(evaluatePool.map(c => [c.id, c.prob])));
 
   options.forEach(opt => {
     // ── Step 1: Partition the pool into YES and NO groups ─────────────
@@ -258,7 +289,7 @@ export function mctsSelectBestQuestion(
     let pYes = 0;
     let pNo = 0;
 
-    activeCandidates.forEach(({ id, player, prob }) => {
+    evaluatePool.forEach(({ id, player, prob }) => {
       const hasAttr = typeof opt.attr === 'function' ? opt.attr(player) : checkAttribute(player, opt.attr);
       if (hasAttr) {
         yesProbs[id] = prob;
@@ -284,7 +315,7 @@ export function mctsSelectBestQuestion(
     const expectedPostEntropy = pYes * hYes + pNo * hNo;
 
     // ── Step 4: True Information Gain ─────────────────────────────────
-    const ig = currentEntropy - expectedPostEntropy;
+    const ig = localEntropy - expectedPostEntropy;
 
     // Blend IG with question weight (cricket domain weight prevents trivial splits)
     const weightedGain = ig * (0.85 + (opt.weight / 5) * 0.15);
