@@ -174,21 +174,21 @@ export async function POST(req: NextRequest) {
     const MAX_QUESTIONS  = 8; 
     const questionsMaxed = rawHistory.length >= MAX_QUESTIONS;
     
-    // PDF Rule: Trigger final guess when confidence ≥ 80%
-    const CONFIDENCE_THRESHOLD = 80;
-    const confidentEnough = conf >= CONFIDENCE_THRESHOLD;
-    
     const poolExhausted   = (state.activePool?.length ?? 0) <= 1;
 
     // ── 4. DECISION ENGINE (Cinematic Hardening) ─────────────────────
     const canGuess = (state.activePool?.length ?? 0) > 0;
     
-    // CINEMATIC: If we reach turn 8 but confidence is low, we REFUSE to guess blindly
-    const refuseToGuess = questionsMaxed && conf < 70;
+    // Only guess early if confidence is massive (>= 88%)
+    const canEarlyGuess = !questionsMaxed && conf >= 88;
     
-    // We guess if confident enough, OR if pool is exhausted, 
-    // OR if questions are maxed AND we have decent confidence (70%+)
-    const shouldGuess = canGuess && !refuseToGuess && (confidentEnough || questionsMaxed || poolExhausted);
+    // At max questions, guess if we have reasonable confidence (>= 70%)
+    const canMaxGuess = questionsMaxed && conf >= 70;
+    
+    const shouldGuess = canGuess && (canEarlyGuess || canMaxGuess || poolExhausted);
+
+    // CINEMATIC: If we reach turn 8 but confidence is low, we REFUSE to guess blindly
+    const refuseToGuess = questionsMaxed && canGuess && !shouldGuess;
 
     // Handle Refusal
     if (refuseToGuess) {
