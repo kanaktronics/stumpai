@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const maxDuration = 45; // Vercel: allow up to 45s for Gemini Pro
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import {
   BayesianState,
@@ -329,7 +331,7 @@ Return a JSON object. The appliesTo array MUST contain one entry for every candi
           }
         },
       }),
-      8000 // 8s timeout for RAGQ — fall back to MCTS if slow
+      25000 // 25s timeout — Gemini Pro needs time for rich candidate profiles
     );
 
     if (!result) return null;
@@ -558,24 +560,43 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 5. RAGQ ENGINE — Dynamic question generation on every turn ──────
-    // Gemini generates the most contextually optimal question for this exact
-    // candidate pool + Q&A history. MCTS is a silent fallback.
+    // Build rich Q&A history with actual question TEXT (not IDs) for RAGQ context
+    const richHistory: Array<{ question: string; answer: string }> = [];
+    for (const h of (rawHistory as any[])) {
+      const qId = h.questionId as string;
+      const ans = h.answer as string;
+      let qText = '';
+      if (qId?.startsWith('dyn_')) {
+        // For dynamic questions, we stored the text in the response — use a placeholder
+        qText = `[Dynamic Oracle Question #${richHistory.length + 1}]`;
+      } else {
+        const bankQ = QUESTION_BANK.find(q => q.id === qId);
+        qText = bankQ?.text ?? qId;
+      }
+      if (qText) richHistory.push({ question: qText, answer: ans });
+    }
+
     let selectedQuestionId = '';
     let loreQuestion = '';
     let loreHint = '';
+    let questionSource = 'mcts'; // track for UI badge
 
     // Give RAGQ the top 20 surviving candidates (or top 10 in late game)
     const ragqCandidates = topCandidates.slice(0, state.activePool.length <= 10 ? 10 : 20);
-    const dynResult = await generateDynamicQuestion(ragqCandidates, rawHistory, state.activePool.length);
+    console.log(`[RAGQ] Firing for pool=${state.activePool.length}, history=${richHistory.length}`);
+    const dynResult = await generateDynamicQuestion(ragqCandidates, richHistory, state.activePool.length);
 
     if (dynResult && dynResult.question && dynResult.appliesTo) {
       selectedQuestionId = 'dyn_' + Date.now() + Math.floor(Math.random() * 1000);
       loreQuestion = dynResult.question;
       loreHint = dynResult.hint || '';
+      questionSource = 'ragq';
       if (!state.dynamicQuestions) state.dynamicQuestions = {};
       state.dynamicQuestions[selectedQuestionId] = dynResult.appliesTo;
+      console.log(`[RAGQ] ✅ Question generated: "${loreQuestion.slice(0, 80)}"`);
     } else {
       // ── MCTS SAFETY FALLBACK (fires only if RAGQ times out or fails) ──
+      console.log('[RAGQ] ⚠️ Timed out or failed — falling back to MCTS');
       const phaseBank = getPhaseQuestions(state.phase);
       const options: SelectableQuestion[] = phaseBank
         .filter(q => !askedIds.has(q.id))
@@ -598,6 +619,7 @@ export async function POST(req: NextRequest) {
         shannon_entropy_score: parseFloat(computeEntropy(state.probabilities).toFixed(4)),
         confidence_percentage: parseFloat(conf.toFixed(2)),
         eliminated_count: eliminatedThisTurn,
+        question_source: questionSource, // 'ragq' | 'mcts'
       },
       oracle_output: { 
         question: loreQuestion, 

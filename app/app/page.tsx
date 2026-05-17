@@ -14,6 +14,7 @@ interface TurnResponse {
     confidence_percentage: number;
     eliminated_count?: number;
     shannon_entropy_score?: number;
+    question_source?: 'ragq' | 'mcts';
   };
   oracle_output: {
     question: string;
@@ -293,7 +294,18 @@ function GameContent() {
               </div>
               <div className={styles.qBubble}>
                 <div className={styles.aiAvatar}>🧠</div>
-                <div className={styles.qText}>{loading ? '⏳ Thinking...' : turnData.oracle_output.question}</div>
+                <div style={{ flex: 1 }}>
+                  {!loading && turnData.turn_metadata.question_source && (
+                    <div style={{ marginBottom: 4 }}>
+                      {turnData.turn_metadata.question_source === 'ragq' ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px', borderRadius: 99, background: 'linear-gradient(90deg,#6366f1,#8b5cf6)', color: '#fff' }}>✦ GEMINI RAGQ</span>
+                      ) : (
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px', borderRadius: 99, background: '#1e293b', color: '#94a3b8' }}>⚙ MCTS ENGINE</span>
+                      )}
+                    </div>
+                  )}
+                  <div className={styles.qText}>{loading ? '⏳ Thinking...' : turnData.oracle_output.question}</div>
+                </div>
               </div>
               <div className={styles.actionsGrid}>
                 <button className={`${styles.ansBtn} ${styles.btnYes}`} onClick={() => handleAnswer('yes')} disabled={loading} id="btn-yes"><span className={styles.btnIcon}>✔</span>Yes</button>
