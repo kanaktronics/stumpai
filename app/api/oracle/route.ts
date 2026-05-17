@@ -114,7 +114,7 @@ Respond ONLY with valid JSON: {"reasoning":"<your step-by-step deduction text>",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { 
         temperature: 0.5, 
-        maxOutputTokens: 200,
+        maxOutputTokens: 400,
         responseMimeType: 'application/json',
         responseSchema: {
           type: SchemaType.OBJECT,
@@ -321,7 +321,7 @@ The appliesTo array MUST contain one entry for every candidate ID listed above.`
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: isLateGame ? 0.75 : 0.6,
-          maxOutputTokens: 800,
+          maxOutputTokens: 4000,
           responseMimeType: 'application/json',
           responseSchema: {
             type: SchemaType.OBJECT,
