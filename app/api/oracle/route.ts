@@ -212,7 +212,16 @@ Respond with ONLY valid JSON array: [{"id":"<player_id>","score":<0-100>}, ...]`
     });
     const text = result.response.text();
     const parsed: { id: string; score: number }[] = JSON.parse(text);
-    return Object.fromEntries(parsed.map(p => [p.id, p.score / 100]));
+    
+    // STRICT VALIDATION: If LLM returns an ID not in our valid candidates list, discard it immediately.
+    const validIds = new Set(candidates.map(c => c.player.id));
+    const cleanScores: Record<string, number> = {};
+    for (const p of parsed) {
+      if (validIds.has(p.id)) {
+        cleanScores[p.id] = p.score / 100;
+      }
+    }
+    return cleanScores;
   } catch {
     return {};
   }
