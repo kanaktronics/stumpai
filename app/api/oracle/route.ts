@@ -299,8 +299,6 @@ CONSTRAINTS
 
 Return a JSON object. The appliesTo array MUST contain one entry for every candidate ID listed above.`;
 
-Return a JSON object. The appliesTo field MUST include an entry for every candidate ID listed above.`;
-
   try {
     const result = await withTimeout(
       gemini.generateContent({
