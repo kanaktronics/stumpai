@@ -323,6 +323,26 @@ The appliesTo array MUST contain one entry for every candidate ID listed above.`
           temperature: isLateGame ? 0.75 : 0.6,
           maxOutputTokens: 800,
           responseMimeType: 'application/json',
+          responseSchema: {
+            type: SchemaType.OBJECT,
+            properties: {
+              question:   { type: SchemaType.STRING },
+              hint:       { type: SchemaType.STRING },
+              reasoning:  { type: SchemaType.STRING },
+              appliesTo: {
+                type: SchemaType.ARRAY,
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    playerId: { type: SchemaType.STRING },
+                    applies:  { type: SchemaType.BOOLEAN }
+                  },
+                  required: ['playerId', 'applies']
+                }
+              }
+            },
+            required: ['question', 'hint', 'appliesTo']
+          }
         },
       }),
       40000 // 40s timeout — Gemini Pro needs time for rich candidate profiles
