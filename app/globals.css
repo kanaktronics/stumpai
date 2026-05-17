@@ -100,3 +100,14 @@ button:active {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--outline);
 }
+
+/* ── Mascot Animations ── */
+@keyframes mascotBounce {
+  0%, 100% { transform: translateY(0px) rotate(-2deg); }
+  50%       { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes mascotPulse {
+  0%, 100% { transform: scale(1.0) rotate(-1deg); filter: drop-shadow(0 0 20px rgba(251,146,60,0.8)); }
+  50%       { transform: scale(1.06) rotate(1deg);  filter: drop-shadow(0 0 32px rgba(251,146,60,1.0)); }
+}

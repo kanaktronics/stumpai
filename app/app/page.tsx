@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import styles from '../page.module.css';
 import RevealCard from '../../components/RevealCard';
 import { Player } from '../../lib/types';
@@ -240,8 +241,8 @@ function GameContent() {
       {/* LOADING */}
       {phase === 'playing' && !turnData && loading && (
         <section className={styles.hero}>
-          <div className={styles.loadingSpinner}>⏳</div>
-          <p className={styles.heroDesc}>Initializing Bayesian inference engine...</p>
+          <Image src="/mascot_thinking.png" alt="Oracle is thinking..." width={200} height={220} style={{ filter: 'drop-shadow(0 0 24px rgba(99,102,241,0.6))', animation: 'mascotBounce 1.2s ease-in-out infinite' }} />
+          <p className={styles.heroDesc} style={{ marginTop: 8 }}>Initializing Bayesian inference engine...</p>
         </section>
       )}
 
@@ -262,6 +263,34 @@ function GameContent() {
             </div>
             <div className={styles.cardBody}>
               {eliminated > 0 && <div className={styles.eliminatedBanner}>🛡️ {eliminated} candidates eliminated</div>}
+              {/* MASCOT: switches based on game state */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                {loading ? (
+                  <Image
+                    src="/mascot_thinking.png"
+                    alt="Oracle thinking"
+                    width={110}
+                    height={120}
+                    style={{ filter: 'drop-shadow(0 0 16px rgba(99,102,241,0.7))', animation: 'mascotBounce 1s ease-in-out infinite', transition: 'all 0.4s ease' }}
+                  />
+                ) : (confidence >= 60 || poolSize <= 15) ? (
+                  <Image
+                    src="/mascot_batting.png"
+                    alt="Oracle converging!"
+                    width={110}
+                    height={120}
+                    style={{ filter: 'drop-shadow(0 0 20px rgba(251,146,60,0.8))', animation: 'mascotPulse 0.8s ease-in-out infinite', transition: 'all 0.4s ease' }}
+                  />
+                ) : (
+                  <Image
+                    src="/mascot_normal.png"
+                    alt="The Oracle"
+                    width={110}
+                    height={120}
+                    style={{ filter: 'drop-shadow(0 0 16px rgba(99,102,241,0.5))', transition: 'all 0.4s ease' }}
+                  />
+                )}
+              </div>
               <div className={styles.qBubble}>
                 <div className={styles.aiAvatar}>🧠</div>
                 <div className={styles.qText}>{loading ? '⏳ Thinking...' : turnData.oracle_output.question}</div>
