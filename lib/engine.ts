@@ -105,42 +105,40 @@ export function updateProbabilities(
       }
     }
 
-    // ── DNA-WEIGHTED CONTRADICTION PENALTY ──────────────────────────────
-    // If the user says "No" to a trait, and this player's identityDNA 
-    // score for that trait is very high, the penalty is exponentially worse.
-    // Formula: penaltyMultiplier = baseScoreNo^(1 + dnaStrength)
-    // So: Dhoni (finisher=0.99) gets ~0.05^1.99 ≈ 0.003 penalty
-    //     Generic player (finisher=0.1) gets ~0.05^1.10 ≈ 0.04 penalty
-    let dnaPenaltyMultiplier = 1.0; // default: no DNA boost
-    const dnaTrait = DNA_QUESTION_MAP[questionId];
-    if (dnaTrait && player.identityDNA && player.identityDNA[dnaTrait] !== undefined) {
-      const dnaStrength = player.identityDNA[dnaTrait] as number;
-      if ((answer === 'no' || answer === 'probably-not') && hasAttr) {
-        // Player HAS the trait but user said No → DNA-scaled crushing
-        dnaPenaltyMultiplier = Math.pow(scoreNo, 1 + dnaStrength);
-      } else if ((answer === 'yes' || answer === 'probably') && !hasAttr) {
-        // Player does NOT have trait but user said Yes → boost surviving players
-        dnaPenaltyMultiplier = scoreNo; // normal flat penalty for non-match
-      }
-    }
-
-    // ── SOFT PROBABILISTIC RANKING ────────────────────────────────────
+    // ── IDENTITY DOMINANCE WEIGHTING (Continuous Semantics) ────────────
     let multiplier = 1.0;
-    if (answer === 'yes') {
-      multiplier = hasAttr ? scoreYes : scoreNo;
-    } else if (answer === 'no') {
-      multiplier = hasAttr ? scoreNo : scoreYes;
-    } else if (answer === 'probably') {
-      multiplier = hasAttr ? scoreProbYes : scoreProbNo;
-    } else if (answer === 'probably-not') {
-      multiplier = hasAttr ? scoreProbNo : scoreProbYes;
-    } else if (answer === 'dont-know') {
-      multiplier = scoreDontKnow;
-    }
-
-    // Apply DNA override: take the more punishing of the two
-    if (dnaPenaltyMultiplier < multiplier) {
-      multiplier = dnaPenaltyMultiplier;
+    const dnaTrait = DNA_QUESTION_MAP[questionId];
+    
+    if (dnaTrait && player.identityDNA && player.identityDNA[dnaTrait] !== undefined) {
+      // The player has a weighted identity vector for this trait!
+      const dnaScore = player.identityDNA[dnaTrait] as number; // 0.0 to 1.0
+      
+      if (answer === 'yes') {
+        // High DNA = massive boost (1.0). Low DNA = massive penalty (scoreNo)
+        multiplier = Math.max(scoreNo, dnaScore);
+      } else if (answer === 'no') {
+        // High DNA = massive penalty (scoreNo). Low DNA = massive boost (1.0)
+        multiplier = Math.max(scoreNo, 1.0 - dnaScore);
+      } else if (answer === 'probably') {
+        multiplier = Math.max(scoreProbNo, dnaScore * 0.85);
+      } else if (answer === 'probably-not') {
+        multiplier = Math.max(scoreProbNo, (1.0 - dnaScore) * 0.85);
+      } else if (answer === 'dont-know') {
+        multiplier = scoreDontKnow;
+      }
+    } else {
+      // ── STANDARD BINARY CHECK ──────────────────────────────────────────
+      if (answer === 'yes') {
+        multiplier = hasAttr ? scoreYes : scoreNo;
+      } else if (answer === 'no') {
+        multiplier = hasAttr ? scoreNo : scoreYes;
+      } else if (answer === 'probably') {
+        multiplier = hasAttr ? scoreProbYes : scoreProbNo;
+      } else if (answer === 'probably-not') {
+        multiplier = hasAttr ? scoreProbNo : scoreProbYes;
+      } else if (answer === 'dont-know') {
+        multiplier = scoreDontKnow;
+      }
     }
 
     const updated = currentProb * multiplier;
