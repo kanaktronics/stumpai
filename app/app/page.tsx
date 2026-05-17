@@ -74,6 +74,31 @@ function GameContent() {
   const [undoStack, setUndoStack]                 = useState<Snapshot[]>([]);
   const [redoStack, setRedoStack]                 = useState<Snapshot[]>([]);
 
+  const [feedbackPlayer, setFeedbackPlayer]       = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  const submitFeedback = async () => {
+    if (!feedbackPlayer.trim()) return;
+    setLoading(true);
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: turnData?.system_state.final_guess_payload?.id || 'local',
+          guessedPlayer: turnData?.system_state.final_guess_payload?.name,
+          actualPlayer: feedbackPlayer,
+          history: history,
+        })
+      });
+      setFeedbackSubmitted(true);
+    } catch (e) {
+      console.error('Feedback error:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const currentSnapshot = useCallback((): Snapshot | null => {
     if (!turnData) return null;
     return { turnData, bayesState, currentQuestionId, history };
@@ -96,6 +121,8 @@ function GameContent() {
     setTurnData(null);
     setUndoStack([]);
     setRedoStack([]);
+    setFeedbackPlayer('');
+    setFeedbackSubmitted(false);
     try {
       const data = await callOracle({ history: [] });
       setTurnData(data);
@@ -319,6 +346,24 @@ function GameContent() {
           <div style={{ fontSize: 80, marginBottom: 24 }}>🤔</div>
           <h2 className={styles.heroTitle}>The Oracle <span>Learns...</span></h2>
           <p className={styles.heroDesc}>Every failure is a learning signal for the Bayesian engine.</p>
+          
+          {!feedbackSubmitted ? (
+            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <input 
+                type="text" 
+                value={feedbackPlayer} 
+                onChange={e => setFeedbackPlayer(e.target.value)} 
+                placeholder="Who were you thinking of?" 
+                style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#fff', width: '300px', fontSize: '16px' }}
+              />
+              <button className={styles.startBtn} onClick={submitFeedback} disabled={loading || !feedbackPlayer.trim()} style={{ background: '#3b82f6', borderColor: '#3b82f6', padding: '10px 24px', fontSize: '14px' }}>
+                {loading ? 'Submitting...' : 'Submit Feedback'}
+              </button>
+            </div>
+          ) : (
+            <p className={styles.heroDesc} style={{ color: '#4ade80', marginTop: 24, fontWeight: 600 }}>Thank you! The Oracle has ingested this anomaly.</p>
+          )}
+
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginTop: 32 }}>
             <button className={styles.startBtn} onClick={handleRestart}>🔄 Try Again</button>
           </div>
