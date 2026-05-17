@@ -40,6 +40,20 @@ export const QUESTION_BANK: Question[] = [
     weight: 10, identityPower: 1.0, phase: 1, expectedSplit: 20,
   },
   {
+    id: 'isTrueAllrounder',
+    text: "Is your player a GENUINE match-changing all-rounder — deadly with both bat AND ball at the highest level?",
+    hint: "True dual-threat all-rounders: Hardik Pandya, Andre Russell, Ben Stokes, Kieron Pollard. NOT utility players like Jadeja or Tewatia.",
+    attrFn: (p) => {
+      const isAR = p.role === 'allrounder';
+      const isPace = p.bowlingStyle.includes('fast') || p.bowlingStyle.includes('medium');
+      const isMajorPlayer = !!(p.matchesAbove50);
+      const dna = p.identityDNA as Record<string, number> | undefined;
+      const isPowerHitter = dna && dna['powerHitter'] > 0.7;
+      return isAR && isPace && isMajorPlayer && !!isPowerHitter;
+    },
+    weight: 10, identityPower: 1.0, phase: 1, expectedSplit: 5,
+  },
+  {
     id: 'isWicketkeeper',
     text: "Is your player a wicket-keeper?",
     hint: "Wicketkeepers: Dhoni, KL Rahul, Pant, Samson, DK, Ishan Kishan.",

@@ -69,19 +69,44 @@ export function updateProbabilities(
   const scoreProbYes    = 0.85;
   const scoreDontKnow   = 1.0;
   const scoreProbNo     = 0.15;
-  const scoreNo         = 0.05; // More forgiving penalty (20x drop instead of 100x drop) to prevent instant elimination on bad data
+  const scoreNo         = 0.05;
+
+  // ── MAX PENALTY CAP ─────────────────────────────────────────────────────
+  // No single question can drop a player's probability by more than 82%.
+  // This prevents one wrong-ish semantic answer from nuking a famous player.
+  const MAX_PENALTY_CAP = 0.18; // minimum multiplier floor
+
+  // ── STAR POWER PRIOR: Famous players get identity gravity ────────────────
+  // Users disproportionately think of famous players. This stabilizing prior
+  // ensures e.g. Hardik Pandya can't collapse below Tewatia on one trait mismatch.
+  const STAR_POWER_PRIOR: Record<string, number> = {
+    'MS Dhoni':       1.50,
+    'Virat Kohli':    1.50,
+    'Rohit Sharma':   1.40,
+    'Hardik Pandya':  1.35,
+    'Ravindra Jadeja':1.30,
+    'KL Rahul':       1.25,
+    'Jasprit Bumrah': 1.25,
+    'Suresh Raina':   1.20,
+    'AB de Villiers': 1.25,
+    'Chris Gayle':    1.20,
+    'Lasith Malinga': 1.20,
+    'Sunil Narine':   1.20,
+    'Andre Russell':  1.20,
+    'Krunal Pandya':  1.10,
+    'Shikhar Dhawan': 1.15,
+  };
 
   // ── DNA TRAIT MAP: maps question IDs → identityDNA keys ─────────────────
-  // This lets us look up how strongly a player's IDENTITY embodies a trait
-  // to make "No" answers proportionally more devastating for players where
-  // that trait is their core identity (e.g., Dhoni + finisher = catastrophic)
   const DNA_QUESTION_MAP: Record<string, keyof Player['identityDNA']> = {
-    'isFinisherArchetype': 'finisher',
+    'isFinisherArchetype':  'finisher',
+    'isTrueAllrounder':     'powerHitter', // pace ARs are power hitters
     'isPowerHitterArchetype': 'powerHitter',
     'isDeathBowlerArchetype': 'deathBowler',
     'isMysterySpinnerArchetype': 'spinWizard',
-    'isSpinBowler': 'spinWizard',
-    'captain': 'captainAura',
+    'isSpinBowler':         'spinWizard',
+    'captain':              'captainAura',
+    'iplCaptain':           'captainAura',
   };
 
   const newActivePool: string[] = [];
@@ -141,7 +166,11 @@ export function updateProbabilities(
       }
     }
 
-    const updated = currentProb * multiplier;
+    // ── APPLY MAX PENALTY CAP ─────────────────────────────────────────────
+    // No single question eliminates more than 82% of probability mass.
+    const cappedMultiplier = Math.max(multiplier, MAX_PENALTY_CAP);
+
+    const updated = currentProb * cappedMultiplier;
     newState.probabilities[player.id] = updated > 1e-9 ? updated : 0;
   });
 
@@ -163,6 +192,26 @@ export function updateProbabilities(
   if (total > 0) {
     for (const { id, val } of rawProbs) {
       newState.probabilities[id] = val / total;
+    }
+  }
+
+  // ── APPLY STAR POWER PRIOR ───────────────────────────────────────────────
+  // After normalization, boost famous players to prevent identity collapse.
+  // Re-normalize after applying prior to maintain valid probability distribution.
+  let starPowerApplied = false;
+  for (const player of PLAYERS) {
+    const prior = STAR_POWER_PRIOR[player.name];
+    if (prior && newState.probabilities[player.id] > 0) {
+      newState.probabilities[player.id] *= prior;
+      starPowerApplied = true;
+    }
+  }
+  if (starPowerApplied) {
+    const starTotal = Object.values(newState.probabilities).reduce((a, b) => a + b, 0);
+    if (starTotal > 0) {
+      for (const id of Object.keys(newState.probabilities)) {
+        newState.probabilities[id] /= starTotal;
+      }
     }
   }
 
