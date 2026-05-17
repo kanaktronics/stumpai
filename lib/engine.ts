@@ -69,7 +69,20 @@ export function updateProbabilities(
   const scoreProbYes    = 0.7;
   const scoreDontKnow   = 1.0;
   const scoreProbNo     = 0.3;
-  const scoreNo         = 0.05; // Make hard "No" very punishing but not 0
+  const scoreNo         = 0.05; // Base hard "No" penalty
+
+  // ── DNA TRAIT MAP: maps question IDs → identityDNA keys ─────────────────
+  // This lets us look up how strongly a player's IDENTITY embodies a trait
+  // to make "No" answers proportionally more devastating for players where
+  // that trait is their core identity (e.g., Dhoni + finisher = catastrophic)
+  const DNA_QUESTION_MAP: Record<string, keyof Player['identityDNA']> = {
+    'isFinisherArchetype': 'finisher',
+    'isPowerHitterArchetype': 'powerHitter',
+    'isDeathBowlerArchetype': 'deathBowler',
+    'isMysterySpinnerArchetype': 'spinWizard',
+    'isSpinBowler': 'spinWizard',
+    'captain': 'captainAura',
+  };
 
   const newActivePool: string[] = [];
 
@@ -92,6 +105,25 @@ export function updateProbabilities(
       }
     }
 
+    // ── DNA-WEIGHTED CONTRADICTION PENALTY ──────────────────────────────
+    // If the user says "No" to a trait, and this player's identityDNA 
+    // score for that trait is very high, the penalty is exponentially worse.
+    // Formula: penaltyMultiplier = baseScoreNo^(1 + dnaStrength)
+    // So: Dhoni (finisher=0.99) gets ~0.05^1.99 ≈ 0.003 penalty
+    //     Generic player (finisher=0.1) gets ~0.05^1.10 ≈ 0.04 penalty
+    let dnaPenaltyMultiplier = 1.0; // default: no DNA boost
+    const dnaTrait = DNA_QUESTION_MAP[questionId];
+    if (dnaTrait && player.identityDNA && player.identityDNA[dnaTrait] !== undefined) {
+      const dnaStrength = player.identityDNA[dnaTrait] as number;
+      if ((answer === 'no' || answer === 'probably-not') && hasAttr) {
+        // Player HAS the trait but user said No → DNA-scaled crushing
+        dnaPenaltyMultiplier = Math.pow(scoreNo, 1 + dnaStrength);
+      } else if ((answer === 'yes' || answer === 'probably') && !hasAttr) {
+        // Player does NOT have trait but user said Yes → boost surviving players
+        dnaPenaltyMultiplier = scoreNo; // normal flat penalty for non-match
+      }
+    }
+
     // ── SOFT PROBABILISTIC RANKING ────────────────────────────────────
     let multiplier = 1.0;
     if (answer === 'yes') {
@@ -106,8 +138,11 @@ export function updateProbabilities(
       multiplier = scoreDontKnow;
     }
 
-    // Notice: Random jitter has been removed here. 
-    // Jitter before temperature cooling was exponentially altering the leaderboards.
+    // Apply DNA override: take the more punishing of the two
+    if (dnaPenaltyMultiplier < multiplier) {
+      multiplier = dnaPenaltyMultiplier;
+    }
+
     const updated = currentProb * multiplier;
     newState.probabilities[player.id] = updated > 1e-9 ? updated : 0;
   });
