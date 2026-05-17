@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import {
   BayesianState,
   initState,
@@ -17,7 +17,10 @@ import { PLAYERS } from '@/lib/players';
 import { checkRateLimit } from '@/lib/ratelimit';
 
 const genAI  = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const gemini = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const gemini = genAI.getGenerativeModel({ 
+  model: 'gemini-1.5-pro',
+  systemInstruction: 'You are the IPL Oracle, a legendary cricket analyst with encyclopedic knowledge of IPL stats, player lore, and specific match moments.'
+});
 
 /** Abort a promise after `ms` milliseconds. Falls through to null on timeout. */
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
@@ -55,12 +58,24 @@ Respond ONLY with valid JSON: {"question":"<created question>","hint":"${hint.re
     const result = await withTimeout(
       gemini.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
+        generationConfig: { 
+          temperature: 0.7, 
+          maxOutputTokens: 200,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: SchemaType.OBJECT,
+            properties: {
+              question: { type: SchemaType.STRING },
+              hint: { type: SchemaType.STRING }
+            },
+            required: ["question", "hint"]
+          }
+        },
       }),
       5000 // 5s timeout — fall back to raw question if Gemini is slow
     );
     if (result) {
-      const text = result.response.text().trim().replace(/```json|```/g, '').trim();
+      const text = result.response.text();
       const parsed = JSON.parse(text);
       if (parsed.question) return { question: parsed.question, hint: parsed.hint ?? hint };
     }
@@ -90,9 +105,21 @@ Respond ONLY with valid JSON: {"reasoning":"<1 dramatic sentence>","famousFor":"
   try {
     const result = await gemini.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.5, maxOutputTokens: 200 },
+      generationConfig: { 
+        temperature: 0.5, 
+        maxOutputTokens: 200,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            reasoning: { type: SchemaType.STRING },
+            famousFor: { type: SchemaType.STRING }
+          },
+          required: ["reasoning", "famousFor"]
+        }
+      },
     });
-    const text = result.response.text().trim().replace(/```json|```/g, '').trim();
+    const text = result.response.text();
     const parsed = JSON.parse(text);
     if (parsed.reasoning) return { reasoning: parsed.reasoning, famousFor: parsed.famousFor ?? topPlayer.famousFor };
   } catch { /* fall through */ }
@@ -133,9 +160,24 @@ Respond with ONLY valid JSON array: [{"id":"<player_id>","score":<0-100>}, ...]`
   try {
     const result = await gemini.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
+      generationConfig: { 
+        temperature: 0.3, 
+        maxOutputTokens: 500,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT,
+            properties: {
+              id: { type: SchemaType.STRING },
+              score: { type: SchemaType.NUMBER }
+            },
+            required: ["id", "score"]
+          }
+        }
+      },
     });
-    const text = result.response.text().trim().replace(/```json|```/g, '').trim();
+    const text = result.response.text();
     const parsed: { id: string; score: number }[] = JSON.parse(text);
     return Object.fromEntries(parsed.map(p => [p.id, p.score / 100]));
   } catch {
@@ -171,9 +213,25 @@ Return ONLY a valid JSON object with this exact structure (no markdown, just JSO
   try {
     const result = await gemini.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 500 },
+      generationConfig: { 
+        temperature: 0.7, 
+        maxOutputTokens: 500,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            question: { type: SchemaType.STRING },
+            hint: { type: SchemaType.STRING },
+            appliesTo: {
+              type: SchemaType.OBJECT,
+              additionalProperties: { type: SchemaType.BOOLEAN }
+            }
+          },
+          required: ["question", "hint", "appliesTo"]
+        }
+      },
     });
-    const text = result.response.text().trim().replace(/```json|```/g, '').trim();
+    const text = result.response.text();
     return JSON.parse(text);
   } catch (err) {
     console.error('Dynamic Question Error:', err);
