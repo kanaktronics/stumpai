@@ -322,7 +322,7 @@ Return STRICT JSON ONLY matching this structure:
   "entropy_score": number,
   "semantic_mode": "broad|contextual|precision"
 }
-Ensure every candidate ID provided in the pool is categorized into either the 'yes' or 'no' array in expected_split.`;
+CRITICAL: You MUST categorize EXACTLY ${candidateProfiles.length} candidate IDs into either the 'yes' or 'no' array. Do NOT omit any candidate.`;
 
   try {
     const result = await withTimeout(
@@ -374,6 +374,11 @@ Ensure every candidate ID provided in the pool is categorized into either the 'y
     if (yesCount === 0 || noCount === 0) {
       console.warn('[RAGQ] Rejected degenerate split (all-yes or all-no)');
       throw new Error(`Degenerate split (YES:${yesCount} NO:${noCount})`);
+    }
+
+    if (yesCount + noCount !== candidateProfiles.length) {
+      console.warn(`[RAGQ] Rejected invalid candidate map. Expected ${candidateProfiles.length}, got ${yesCount + noCount}`);
+      throw new Error(`Omitted candidates in split map`);
     }
 
     // Convert array to dictionary
