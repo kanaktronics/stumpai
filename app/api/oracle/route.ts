@@ -466,9 +466,8 @@ export async function POST(req: NextRequest) {
       } else {
         const questionDef = QUESTION_BANK.find(q => q.id === questionId);
         attrResolver = questionDef?.attrFn
-          ?? (questionDef?.attr
-            ? (p: Player) => !!(p as any)[questionDef.attr]
-            : null);
+          ?? (questionDef?.attr as unknown as ((p: Player) => boolean))
+          ?? null;
       }
 
       if (attrResolver) {

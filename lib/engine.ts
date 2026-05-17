@@ -168,10 +168,11 @@ export function updateProbabilities(
     }
   }
 
-  // Active pool = players with >0.5% probability mass (raised from 0.05% to match Akinator speed).
-  // With 809 players, a 50/50 YES split means NO players drop to ~0.002% — well below this cutoff.
+  // Active pool = players holding at least 1% of the leading candidate's probability.
+  // This scales perfectly across all pool sizes and prevents mass-elimination on turn 1.
+  const topProb = Math.max(...Object.values(newState.probabilities));
   newState.activePool = Object.keys(newState.probabilities).filter(
-    id => newState.probabilities[id] > 0.005
+    id => newState.probabilities[id] > topProb * 0.01
   );
 
   // ── EMBEDDING SIMILARITY BONUS ────────────────────────────────────────
