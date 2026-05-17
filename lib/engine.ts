@@ -69,7 +69,7 @@ export function updateProbabilities(
   const scoreProbYes    = 0.85;
   const scoreDontKnow   = 1.0;
   const scoreProbNo     = 0.15;
-  const scoreNo         = 0.01; // Aggressive hard "No" penalty
+  const scoreNo         = 0.05; // More forgiving penalty (20x drop instead of 100x drop) to prevent instant elimination on bad data
 
   // ── DNA TRAIT MAP: maps question IDs → identityDNA keys ─────────────────
   // This lets us look up how strongly a player's IDENTITY embodies a trait
