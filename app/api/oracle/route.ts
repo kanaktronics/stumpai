@@ -254,75 +254,69 @@ async function generateDynamicQuestion(
     ? `ADAPTIVE CONFIDENCE ROUTING — LATE-GAME PRECISION MODE (${poolSize} candidates remaining).\nSemantic entropy is critically low. Activate hyper-contextual lore-based interrogation.\nFocus on: iconic match moments, franchise legacy, specific captaincy history, death-over heroics, fan-culture associations, recognisable gameplay signatures.`
     : `ADAPTIVE CONFIDENCE ROUTING — EARLY-GAME ENTROPY MODE (${poolSize} candidates remaining).\nSemantic entropy is high. Activate broad role-based and structural discriminative questioning.\nFocus on: role archetype, team affiliation, country of origin, IPL era, batting/bowling style, career longevity.`;
 
-  const prompt = `You are the central reasoning engine of Stump.AI — an adaptive AI-powered IPL player deduction system built for the “Google Cloud Build With AI 2026: Agentic Premier League” hackathon.
+  const prompt = `You are the question engine for an IPL Cricket Akinator game.
 
-The system is powered by:
-- Google Gemini 3.1 Pro reasoning infrastructure
-- Neuro-symbolic reasoning
-- Retrieval-Augmented Generative Questioning (RAGQ)
-- Bayesian probability updating
-- Semantic entropy minimization
-- Dynamic contextual interrogation
+CORE JOB
+--------
+Given a structured summary of candidate fields, remaining players, and question history,
+generate ONE compelling yes/no question that:
+1. Maximizes information gain (entropy or learned_entropy).
+2. Is logically coherent (respects field dependencies).
+3. Is engaging and avoids repetition.
+4. Disambiguates among the remaining candidates effectively.
 
-Your purpose is NOT to behave like a static Akinator clone.
-Your purpose is to simulate adaptive reasoning, contextual cognition, dynamic interrogation, semantic deduction, and agentic AI behavior.
+CRITICAL RULES
+---------------
+1. FIELD DEPENDENCY LOGIC
+   - Do NOT ask about batting traits if the player is already ruled out as a non-batter.
+   - Do NOT ask about bowling traits if the player is ruled out as a non-bowler.
+   - Do NOT ask about captaincy traits if the player is a young/rookie.
+   - Use context from asked_questions history to infer what is logically safe to ask.
 
-==================================================
-CORE PHILOSOPHY & NO STATIC QUESTION FLOW
-==================================================
-The system MUST feel intelligent, evolving, dynamic, contextual, conversational, and AI-native.
-You are STRICTLY FORBIDDEN from fixed sequences, static question trees, or hardcoded interrogation paths.
-Every question MUST emerge dynamically from previous answers and the surviving pool.
+2. HALLUCINATION PREVENTION
+   - Review the asked_questions history and infer constraints.
+   - If you've asked "Is your player a batsman?" and got "no", avoid asking about batting-specific traits.
+   - BEFORE choosing a field, reason through: "Given the answers so far, is this question logically safe to ask?"
 
-==================================================
-HYBRID REASONING ARCHITECTURE
-==================================================
-- SYMBOLIC LAYER: Bayesian confidence, contradiction penalization.
-- SEMANTIC LAYER: Gemini 3.1 Pro contextual reasoning, dynamic questioning.
-- RETRIEVAL LAYER: Real-time candidate metadata injection.
+3. VARIETY & ENGAGEMENT
+   - Avoid asking the same field category twice.
+   - Prefer questions that reveal NEW dimensions of the player.
+   - Choose natural, conversational phrasings over robotic ones.
 
-==================================================
-CURRENT ROUTING DECISION
-==================================================
-${modeInstructions}
+4. CANDIDATE DISAMBIGUATION
+   - Ask questions that directly distinguish top candidates.
+   - Look at the candidate summaries and identify what makes them different (Role? Franchise? Era?).
 
+5. QUESTION SEQUENCING STRATEGY
+   - Avoid: Same field category two turns in a row.
+
+6. JSON OUTPUT FORMAT (EXACT, NO MARKDOWN)
+   Return ONLY a single JSON object with these keys:
+   {
+     "question": "<short natural yes/no question>",
+     "hint": "<short hint>",
+     "reasoning": "<brief one-line reason why this question now>",
+     "expected_split": {
+       "yes": ["playerId1", "playerId2"],
+       "no": ["playerId3"]
+     },
+     "semantic_mode": "broad|contextual|precision"
+   }
+   - Do NOT wrap in markdown fences or add commentary.
+   - Keep "question" concise (<15 words preferred).
+   - Use "reasoning" to justify why this field avoids hallucination and is interesting now.
+   - CRITICAL: You MUST categorize EXACTLY ${candidateProfiles.length} candidate IDs into either the 'yes' or 'no' array. Do NOT omit any candidate.
+
+INPUT STRUCTURE
+----------------
 QUESTION INDEX: ${qIndex + 1}
 
-==================================================
-Q&A EVIDENCE LOG (Verified Context — DO NOT REPEAT)
-==================================================
+ASKED QUESTIONS (Verified Context — DO NOT REPEAT):
 ${historyCtx}
 
-==================================================
-SURVIVING CANDIDATE POOL — VERIFIED METADATA
-==================================================
-The following candidates are grounded in retrieved IPL metadata. Treat every attribute as verified fact.
+CANDIDATES:
 ${candidateProfiles.join('\n')}
-
-==================================================
-FACTUAL GROUNDING & HALLUCINATION PREVENTION
-==================================================
-You MUST remain strictly grounded in the provided candidate metadata and retrieved IPL context above.
-You are STRICTLY FORBIDDEN from inventing IPL events, fabricating records, or generating false lore.
-
-==================================================
-OUTPUT FORMAT
-==================================================
-Return STRICT JSON ONLY matching this structure:
-{
-  "question": "The YES/NO question text",
-  "hint": "A contextual hint for the user",
-  "reasoning": "Why this question minimizes entropy",
-  "expected_split": {
-    "yes": ["playerId1", "playerId2"],
-    "no": ["playerId3"]
-  },
-  "confidence_gain": 0-100,
-  "candidate_pool_size": number,
-  "entropy_score": number,
-  "semantic_mode": "broad|contextual|precision"
-}
-CRITICAL: You MUST categorize EXACTLY ${candidateProfiles.length} candidate IDs into either the 'yes' or 'no' array. Do NOT omit any candidate.`;
+`;
 
   try {
     const result = await withTimeout(
@@ -346,9 +340,6 @@ CRITICAL: You MUST categorize EXACTLY ${candidateProfiles.length} candidate IDs 
                 },
                 required: ['yes', 'no']
               },
-              confidence_gain: { type: SchemaType.NUMBER },
-              candidate_pool_size: { type: SchemaType.NUMBER },
-              entropy_score: { type: SchemaType.NUMBER },
               semantic_mode: { type: SchemaType.STRING }
             },
             required: ['question', 'hint', 'expected_split']
