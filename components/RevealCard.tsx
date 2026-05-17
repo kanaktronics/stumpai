@@ -2,8 +2,16 @@
 import styles from './RevealCard.module.css';
 import { Player } from '@/lib/players';
 
+interface RunnerUp {
+  name: string;
+  role: string;
+  teams: string[];
+  confidence: number;
+  famousFor: string;
+}
+
 interface Props {
-  player: Player;
+  player: Player & { runnersUp?: RunnerUp[] };
   confidence: number;
   reasoning?: string;
   onRestart: () => void;
@@ -19,7 +27,6 @@ export default function RevealCard({ player, confidence, reasoning, onRestart, o
     early: '🕰️ Early IPL (2008–11)', golden: '✨ Golden Era (2012–18)', modern: '📊 Modern IPL (2019+)',
   };
 
-  // Build top 3 DNA traits for display
   const dna = player.identityDNA;
   const dnaTraits = dna ? [
     { label: 'Power Hitter',   val: dna.powerHitter ?? 0   },
@@ -32,12 +39,13 @@ export default function RevealCard({ player, confidence, reasoning, onRestart, o
     { label: 'Longevity',      val: dna.longevity ?? 0      },
   ].sort((a, b) => b.val - a.val).slice(0, 4) : [];
 
+  const runnersUp = player.runnersUp ?? [];
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.glow} />
       <div className={styles.badge}>🔮 Oracle Speaks</div>
 
-      {/* Era badge */}
       {player.era && (
         <div className={styles.era}>{ERA_LABELS[player.era] ?? player.era}</div>
       )}
@@ -56,7 +64,6 @@ export default function RevealCard({ player, confidence, reasoning, onRestart, o
         {player.purpleCap && <span className={`${styles.tag} ${styles.purple}`}>🟣 Purple Cap</span>}
       </div>
 
-      {/* Identity Tags */}
       {player.identityTags && player.identityTags.length > 0 && (
         <div className={styles.identityTags}>
           {player.identityTags.slice(0, 4).map(t => (
@@ -65,7 +72,6 @@ export default function RevealCard({ player, confidence, reasoning, onRestart, o
         </div>
       )}
 
-      {/* Identity DNA bars */}
       {dnaTraits.length > 0 && (
         <div className={styles.dna}>
           <div className={styles.dnaTitle}>Identity DNA</div>
@@ -81,7 +87,7 @@ export default function RevealCard({ player, confidence, reasoning, onRestart, o
         </div>
       )}
 
-      {/* WHY I GUESSED THIS — The Killer Feature */}
+      {/* WHY I GUESSED THIS */}
       {reasoning && (
         <div className={styles.reasoning}>
           <div className={styles.reasoningTitle}>🧠 Why I deduced this:</div>
@@ -94,6 +100,25 @@ export default function RevealCard({ player, confidence, reasoning, onRestart, o
       <div className={styles.conf}>
         Oracle Confidence: <strong>{confidence.toFixed(1)}%</strong>
       </div>
+
+      {/* RUNNERS-UP */}
+      {runnersUp.length > 0 && (
+        <div className={styles.runnersUp}>
+          <div className={styles.runnersUpTitle}>📊 Oracle also considered:</div>
+          {runnersUp.map((r, i) => (
+            <div key={r.name} className={styles.runnerRow}>
+              <span className={styles.runnerRank}>#{i + 2}</span>
+              <span className={styles.runnerIcon}>{ROLE_ICONS[r.role] ?? '🏏'}</span>
+              <div className={styles.runnerInfo}>
+                <span className={styles.runnerName}>{r.name}</span>
+                <span className={styles.runnerMeta}>{r.teams.slice(0, 2).join(' · ')}</span>
+              </div>
+              <span className={styles.runnerConf}>{r.confidence.toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <p className={styles.question}>Was I right?</p>
       <div className={styles.actions}>
         <button className={`${styles.btn} ${styles.correct}`} onClick={onCorrect} id="btn-correct">

@@ -188,6 +188,74 @@
   font-size: 14px;
 }
 
+.runnersUp {
+  width: 100%;
+  max-width: 400px;
+  background: #f2f3fd;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.runnersUpTitle {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #727785;
+  margin-bottom: 16px;
+  letter-spacing: 0.05em;
+}
+
+.runnerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(114, 119, 133, 0.12);
+}
+.runnerRow:last-child { border-bottom: none; }
+
+.runnerRank {
+  font-size: 11px;
+  font-weight: 800;
+  color: #727785;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.runnerIcon {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.runnerInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.runnerName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1b22;
+}
+
+.runnerMeta {
+  font-size: 11px;
+  color: #727785;
+}
+
+.runnerConf {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
 @media (max-width: 600px) {
   .avatar {
     width: 80px;

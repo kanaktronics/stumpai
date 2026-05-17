@@ -508,22 +508,12 @@ export async function POST(req: NextRequest) {
     else if (conf >= 40) interpretation = "DEEP NEURAL SCANNING...";
     else interpretation = "BROAD SPECTRUM ANALYSIS...";
 
-    // PDF Rule: ≤ 12 total questions
-    const MAX_QUESTIONS  = 12; 
-    const questionsMaxed = rawHistory.length >= MAX_QUESTIONS;
-    
-    const poolExhausted   = (state.activePool?.length ?? 0) <= 1;
-
-    // ── 4. DECISION ENGINE (Cinematic Hardening) ─────────────────────
-    const canGuess = (state.activePool?.length ?? 0) > 0;
-    
-    // Only guess early if confidence is massive (>= 88%)
-    const canEarlyGuess = !questionsMaxed && conf >= 88;
-    
-    // At max questions, guess if we have reasonable confidence (>= 70%)
-    const canMaxGuess = questionsMaxed && conf >= 70;
-    
-    const shouldGuess = canGuess && (canEarlyGuess || canMaxGuess || poolExhausted);
+    // ── 4. DECISION ENGINE ─────────────────────────────────────────────────────────
+    // Keep asking until confidence >= 88% OR pool is exhausted. No hard question cap.
+    const canGuess   = (state.activePool?.length ?? 0) > 0;
+    const poolExhausted = (state.activePool?.length ?? 0) <= 1;
+    const highConf   = conf >= 88;
+    const shouldGuess = canGuess && (highConf || poolExhausted);
 
     // CINEMATIC: If we are deep into the game (turn 8+) but confidence is low, 
     // the Oracle refuses to guess blindly and DEMANDS more information.
@@ -533,13 +523,12 @@ export async function POST(req: NextRequest) {
 
     const topCandidates = getTopCandidates(state, 3);
 
-    // If we've hit a dead end (0 survivors) or reached absolute max questions without confidence,
-    // we return the STUMPED state early.
-    if ((state.activePool.length === 0 || (questionsMaxed && !shouldGuess)) && !shouldGuess) {
+    // If pool is dead and we still can't guess, return STUMPED.
+    if (state.activePool.length === 0 && !shouldGuess) {
       return NextResponse.json({
         turn_metadata: { 
             question_index: rawHistory.length, 
-            active_pool_size: state.activePool.length, 
+            active_pool_size: 0, 
             confidence_percentage: conf,
             eliminated_count: eliminatedThisTurn 
         },
@@ -552,10 +541,8 @@ export async function POST(req: NextRequest) {
 
     // ── 5. GUESS LOGIC (Prioritized for final turns) ─────────────────
     if (shouldGuess) {
-      // PDF REQ: "AI Reasoning" - Use Gemini to rerank top candidates against history
       const rerankedScores = await semanticRerank(topCandidates, rawHistory);
       
-      // Blend reranked scores into candidates
       const finalCandidates = topCandidates.map(c => {
         const rerankedP = rerankedScores[c.player.id];
         return {
@@ -565,30 +552,33 @@ export async function POST(req: NextRequest) {
       }).sort((a, b) => b.p_value - a.p_value);
 
       const topPlayer = finalCandidates[0].player;
-      
-      // Calculate final competitive confidence AFTER reranking to match engine logic
       const p1 = finalCandidates[0]?.p_value || 0;
       const p2 = finalCandidates[1]?.p_value || 0;
       const p3 = finalCandidates[2]?.p_value || 0;
       const finalConf = p1 > 0.0001 ? (p1 / (p1 + p2 + p3)) * 100 : 0;
       
       const { reasoning, famousFor } = await generateFinalGuess(topPlayer, finalConf, rawHistory);
+
+      // Build runners-up for the UI (2nd and 3rd place)
+      const runnersUp = finalCandidates.slice(1).map(c => ({
+        name: c.player.name,
+        role: c.player.role,
+        teams: c.player.teams,
+        confidence: Math.round(c.p_value * 10000) / 100,
+        famousFor: c.player.famousFor,
+      }));
       
       const payload = { 
         ...topPlayer, 
         reasoning, 
         famousFor, 
         confidence: finalConf / 100,
+        runnersUp,
         is_stumped: state.activePool.length === 0 
       };
 
       return NextResponse.json({
-        turn_metadata: { 
-            question_index: rawHistory.length, 
-            active_pool_size: state.activePool.length, 
-            confidence_percentage: finalConf,
-            eliminated_count: eliminatedThisTurn
-        },
+        turn_metadata: { question_index: rawHistory.length, active_pool_size: state.activePool.length, confidence_percentage: finalConf, eliminated_count: eliminatedThisTurn },
         oracle_output: { question: '', flavor_text: interpretation },
         inference_leaderboard: finalCandidates.map(c => ({ player_id: c.player.id, player_name: c.player.name, p_value: c.p_value.toFixed(4), reason: c.player.famousFor })),
         system_state: { trigger_final_guess: true, final_guess_payload: payload },
