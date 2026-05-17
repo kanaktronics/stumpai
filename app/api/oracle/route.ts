@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
     const { state: rawState, history: rawHistory = [], questionId, answer } = body;
 
     // Validate answer field
-    const VALID_ANSWERS = ['yes', 'no', 'maybe', 'dont-know'];
+    const VALID_ANSWERS = ['yes', 'no', 'dont-know', 'probably', 'probably-not'];
     if (answer && !VALID_ANSWERS.includes(answer)) {
       return NextResponse.json({ error: 'Invalid answer value.' }, { status: 400 });
     }

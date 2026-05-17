@@ -139,7 +139,7 @@ export interface Player {
 }
 
 export type Attr = string;
-export type Answer = 'yes' | 'no' | 'maybe' | 'dont-know';
+export type Answer = 'yes' | 'no' | 'dont-know' | 'probably' | 'probably-not';
 
 export type Phase = 1 | 2 | 3 | 4;
 

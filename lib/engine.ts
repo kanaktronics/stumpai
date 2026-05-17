@@ -62,11 +62,13 @@ export function updateProbabilities(
   const newState = { ...state };
   newState.probabilities = { ...state.probabilities };
   newState.history = [...state.history, { questionId, answer }];
-  if (answer === 'maybe') newState.maybeCount = (state.maybeCount || 0) + 1;
+  if (answer === 'dont-know') newState.maybeCount = (state.maybeCount || 0) + 1;
 
-  const scoreYes   = 1.0;
-  const scoreMaybe = 0.5;
-  const scoreNo    = 0.15; // Softened to prevent premature hypothesis collapse
+  const scoreYes        = 1.0;
+  const scoreProbYes    = 0.7;
+  const scoreDontKnow   = 1.0;
+  const scoreProbNo     = 0.3;
+  const scoreNo         = 0.05; // Make hard "No" very punishing but not 0
 
   const newActivePool: string[] = [];
 
@@ -95,12 +97,17 @@ export function updateProbabilities(
       multiplier = hasAttr ? scoreYes : scoreNo;
     } else if (answer === 'no') {
       multiplier = hasAttr ? scoreNo : scoreYes;
-    } else if (answer === 'maybe') {
-      multiplier = scoreMaybe;
+    } else if (answer === 'probably') {
+      multiplier = hasAttr ? scoreProbYes : scoreProbNo;
+    } else if (answer === 'probably-not') {
+      multiplier = hasAttr ? scoreProbNo : scoreProbYes;
+    } else if (answer === 'dont-know') {
+      multiplier = scoreDontKnow;
     }
 
-    const jitter = 0.97 + Math.random() * 0.06; // ±3% jitter
-    const updated = currentProb * multiplier * jitter;
+    // Notice: Random jitter has been removed here. 
+    // Jitter before temperature cooling was exponentially altering the leaderboards.
+    const updated = currentProb * multiplier;
     newState.probabilities[player.id] = updated > 1e-9 ? updated : 0;
   });
 
@@ -109,9 +116,9 @@ export function updateProbabilities(
   // Early turns: soft/forgiving. Late turns: aggressive commitment.
   const turn = state.history.length;
   let alpha = 1.0;
-  if (turn >= 4) alpha = 1.3;  // Warm
-  if (turn >= 7) alpha = 1.8;  // Cool
-  if (turn >= 10) alpha = 2.5; // Freezing (Hyper-aggressive)
+  if (turn >= 4) alpha = 1.2;  // Warm
+  if (turn >= 7) alpha = 1.6;  // Cool
+  if (turn >= 10) alpha = 2.0; // Max constraint to prevent the right answer dying from one false 'No'
 
   // Normalize and compute the definitive active pool ONCE.
   const rawProbs = Object.keys(newState.probabilities).map(id => ({

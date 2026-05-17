@@ -243,8 +243,8 @@ function GameContent() {
                 <button className={`${styles.ansBtn} ${styles.btnYes}`} onClick={() => handleAnswer('yes')} disabled={loading} id="btn-yes"><span className={styles.btnIcon}>✔</span>Yes</button>
                 <button className={`${styles.ansBtn} ${styles.btnNo}`} onClick={() => handleAnswer('no')} disabled={loading} id="btn-no"><span className={styles.btnIcon}>✖</span>No</button>
                 <button className={`${styles.ansBtn} ${styles.btnMaybe}`} onClick={() => handleAnswer('dont-know')} disabled={loading} id="btn-dontknow"><span className={styles.btnIcon}>❓</span>Don&apos;t Know</button>
-                <button className={`${styles.ansBtn} ${styles.btnProbYes}`} onClick={() => handleAnswer('maybe')} disabled={loading} id="btn-probably"><span className={styles.btnIcon}>👍</span>Probably</button>
-                <button className={`${styles.ansBtn} ${styles.btnProbNo}`} onClick={() => handleAnswer('no')} disabled={loading} id="btn-probnot"><span className={styles.btnIcon}>👎</span>Prob. Not</button>
+                <button className={`${styles.ansBtn} ${styles.btnProbYes}`} onClick={() => handleAnswer('probably')} disabled={loading} id="btn-probably"><span className={styles.btnIcon}>👍</span>Probably</button>
+                <button className={`${styles.ansBtn} ${styles.btnProbNo}`} onClick={() => handleAnswer('probably-not')} disabled={loading} id="btn-probnot"><span className={styles.btnIcon}>👎</span>Prob. Not</button>
               </div>
               {(canUndo || canRedo) && <p className={styles.undoHint}>{canUndo && `← ${undoStack.length} to undo`}{canUndo && canRedo && '  ·  '}{canRedo && `${redoStack.length} to redo →`}</p>}
               {turnData.oracle_output.contextual_hint && <p className={styles.hintText}>💡 {turnData.oracle_output.contextual_hint}</p>}
