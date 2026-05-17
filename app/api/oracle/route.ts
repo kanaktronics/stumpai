@@ -657,7 +657,7 @@ export async function POST(req: NextRequest) {
       const phaseBank = getPhaseQuestions(state.phase);
       const options: SelectableQuestion[] = phaseBank
         .filter(q => !askedIds.has(q.id))
-        .map(q => ({ id: q.id, attr: q.attrFn ?? ((p: Player) => !!(p as unknown as Record<string, unknown>)[q.attr]), weight: q.weight ?? 5 }));
+        .map(q => ({ id: q.id, attr: q.attrFn ?? ((p: Player) => !!(p as unknown as Record<string, unknown>)[q.attr ?? 'id']), weight: q.weight ?? 5 }));
 
       const mctsResult = mctsSelectBestQuestion(state, options);
       const bankQ = QUESTION_BANK.find(q => q.id === mctsResult?.question?.id) ?? QUESTION_BANK[0];

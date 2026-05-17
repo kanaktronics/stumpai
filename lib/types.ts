@@ -147,7 +147,7 @@ export interface Question {
   id: string;
   text: string;
   hint: string;
-  attr: keyof Player;
+  attr?: keyof Player;   // Optional — use attrFn for complex attribute resolution
   attrFn?: (p: Player) => boolean;
   weight: number;
   identityPower?: number; // Optional
