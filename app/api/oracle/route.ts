@@ -143,6 +143,44 @@ Respond with ONLY valid JSON array: [{"id":"<player_id>","score":<0-100>}, ...]`
   }
 }
 
+async function generateDynamicQuestion(
+  topCandidates: { player: Player; p_value: number }[]
+): Promise<{ question: string; hint: string; appliesTo: Record<string, boolean> } | null> {
+  const candidateProfiles = topCandidates.map(c => {
+    return `- ${c.player.name} (${c.player.id}): Teams: ${c.player.teams.join(', ')} | Role: ${c.player.role} | Tags: ${(c.player.identityTags || []).slice(0, 3).join(', ')}`;
+  });
+
+  const prompt = `You are the IPL Oracle. We are in the final stages of a player guessing game.
+The remaining candidates are:
+${candidateProfiles.join('\n')}
+
+INVENT a highly specific, lore-accurate YES/NO question that applies to exactly SOME of these players, but NOT ALL. 
+The question should focus on unique traits, signature moments, specific teams they captained, or rare stats.
+The goal is to split the candidates perfectly.
+
+Return ONLY a valid JSON object with this exact structure (no markdown, just JSON):
+{
+  "question": "<the YES/NO question>",
+  "hint": "<a short mysterious hint>",
+  "appliesTo": {
+    "<player_id_1>": true,
+    "<player_id_2>": false
+  }
+}`;
+
+  try {
+    const result = await gemini.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 500 },
+    });
+    const text = result.response.text().trim().replace(/```json|```/g, '').trim();
+    return JSON.parse(text);
+  } catch (err) {
+    console.error('Dynamic Question Error:', err);
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // ── RATE LIMITING ──────────────────────────────────────────────────
@@ -185,8 +223,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid answer value.' }, { status: 400 });
     }
 
-    // Validate questionId is a known question
-    if (questionId && !QUESTION_BANK.find(q => q.id === questionId)) {
+    // Validate questionId is a known question or a dynamic question
+    if (questionId && !questionId.startsWith('dyn_') && !QUESTION_BANK.find(q => q.id === questionId)) {
       return NextResponse.json({ error: 'Unknown questionId.' }, { status: 400 });
     }
 
@@ -201,11 +239,19 @@ export async function POST(req: NextRequest) {
     // Apply Bayesian update for this answer (skip on first call — no questionId yet)
     if (questionId && answer) {
       // Look up the actual question to get its attrFn or attr
-      const questionDef = QUESTION_BANK.find(q => q.id === questionId);
-      const attrResolver = questionDef?.attrFn
-        ?? (questionDef?.attr
-          ? (p: Player) => !!(p as any)[questionDef.attr]
-          : null);
+      let attrResolver: ((p: Player) => boolean) | null = null;
+      if (questionId.startsWith('dyn_')) {
+        const dynMap = state.dynamicQuestions?.[questionId];
+        if (dynMap) {
+          attrResolver = (p: Player) => dynMap[p.id] === true;
+        }
+      } else {
+        const questionDef = QUESTION_BANK.find(q => q.id === questionId);
+        attrResolver = questionDef?.attrFn
+          ?? (questionDef?.attr
+            ? (p: Player) => !!(p as any)[questionDef.attr]
+            : null);
+      }
 
       if (attrResolver) {
         state = updateProbabilities(state, questionId, answer as Answer, attrResolver);
@@ -334,19 +380,41 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 5. NEXT QUESTION SELECTION ─────────────────────────────────
-    const phaseBank = getPhaseQuestions(state.phase);
-    const options: SelectableQuestion[] = phaseBank
-      .filter(q => !askedIds.has(q.id))
-      .map(q => ({ id: q.id, attr: q.attrFn ?? ((p: Player) => !!(p as unknown as Record<string, unknown>)[q.attr]), weight: q.weight ?? 5 }));
+    let selectedQuestionId = '';
+    let loreQuestion = '';
+    let loreHint = '';
 
-    const mctsResult = mctsSelectBestQuestion(state, options);
-    const bankQ = QUESTION_BANK.find(q => q.id === mctsResult?.question?.id) ?? QUESTION_BANK[0];
+    // If we have <= 10 candidates, unleash the Hybrid Neuro-Symbolic Engine to invent a perfect dynamic question
+    if (state.activePool.length <= 10 && state.activePool.length > 1) {
+      const dynResult = await generateDynamicQuestion(topCandidates.slice(0, 10));
+      if (dynResult && dynResult.question && dynResult.appliesTo) {
+        selectedQuestionId = 'dyn_' + Date.now() + Math.floor(Math.random() * 1000);
+        loreQuestion = dynResult.question;
+        loreHint = dynResult.hint || '';
+        
+        if (!state.dynamicQuestions) state.dynamicQuestions = {};
+        state.dynamicQuestions[selectedQuestionId] = dynResult.appliesTo;
+        console.log(`[ORACLE DYNAMIC] Invented Q: "${loreQuestion}"`);
+      }
+    }
 
-    console.log(`[ORACLE IG] Selected Q: "${bankQ.id}" | IG Gain: ${mctsResult?.gain?.toFixed(4)} | pYes: ${((mctsResult?.debugInfo?.pYes ?? 0) * 100).toFixed(1)}% | SplitQuality: ${(mctsResult?.debugInfo?.splitQuality ?? 0).toFixed(3)}`);
+    // Fallback to standard MCTS selection
+    if (!selectedQuestionId) {
+      const phaseBank = getPhaseQuestions(state.phase);
+      const options: SelectableQuestion[] = phaseBank
+        .filter(q => !askedIds.has(q.id))
+        .map(q => ({ id: q.id, attr: q.attrFn ?? ((p: Player) => !!(p as unknown as Record<string, unknown>)[q.attr]), weight: q.weight ?? 5 }));
 
-    const { question: loreQuestion, hint: loreHint } = await generateLoreQuestion(
-      bankQ.text, bankQ.hint, topCandidates, rawHistory.length
-    );
+      const mctsResult = mctsSelectBestQuestion(state, options);
+      const bankQ = QUESTION_BANK.find(q => q.id === mctsResult?.question?.id) ?? QUESTION_BANK[0];
+
+      console.log(`[ORACLE IG] Selected Q: "${bankQ.id}" | IG Gain: ${mctsResult?.gain?.toFixed(4)} | pYes: ${((mctsResult?.debugInfo?.pYes ?? 0) * 100).toFixed(1)}% | SplitQuality: ${(mctsResult?.debugInfo?.splitQuality ?? 0).toFixed(3)}`);
+
+      const res = await generateLoreQuestion(bankQ.text, bankQ.hint, topCandidates, rawHistory.length);
+      loreQuestion = res.question;
+      loreHint = res.hint;
+      selectedQuestionId = bankQ.id;
+    }
 
     return NextResponse.json({
       turn_metadata: { 
@@ -359,7 +427,7 @@ export async function POST(req: NextRequest) {
       oracle_output: { 
         question: loreQuestion, 
         contextual_hint: loreHint, 
-        next_question_id: bankQ.id, 
+        next_question_id: selectedQuestionId, 
         flavor_text: interpretation 
       },
       inference_leaderboard: topCandidates.map(c => ({ 

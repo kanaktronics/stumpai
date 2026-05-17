@@ -159,4 +159,6 @@ export interface BayesianState {
   probabilities: Record<string, number>;
   history: { questionId: string; answer: Answer }[];
   phase: Phase;
+  maybeCount?: number;
+  dynamicQuestions?: Record<string, Record<string, boolean>>;
 }

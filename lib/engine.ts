@@ -59,6 +59,9 @@ export function updateProbabilities(
   const newState = { ...state };
   newState.probabilities = { ...state.probabilities };
   newState.history = [...state.history, { questionId, answer }];
+  if (state.dynamicQuestions) {
+    newState.dynamicQuestions = { ...state.dynamicQuestions };
+  }
   if (answer === 'dont-know') newState.maybeCount = (state.maybeCount || 0) + 1;
 
   const scoreYes        = 1.0;
