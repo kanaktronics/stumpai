@@ -136,26 +136,34 @@ Keep it under 3-4 sentences. Make it sound like a brilliant detective revealing 
 Respond ONLY with valid JSON: {"reasoning":"<your step-by-step deduction text>","famousFor":"${topPlayer.famousFor.replace(/"/g, "'")}"}`;
 
   try {
-    const result = await gemini.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { 
-        temperature: 0.5, 
-        maxOutputTokens: 400,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            reasoning: { type: SchemaType.STRING },
-            famousFor: { type: SchemaType.STRING }
-          },
-          required: ["reasoning", "famousFor"]
-        }
-      },
-    });
-    const text = result.response.text();
-    const parsed = JSON.parse(text);
-    if (parsed.reasoning) return { reasoning: parsed.reasoning, famousFor: parsed.famousFor ?? topPlayer.famousFor };
-  } catch { /* fall through */ }
+    const result = await withTimeout(
+      geminiFlash.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { 
+          temperature: 0.6, 
+          maxOutputTokens: 400,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: SchemaType.OBJECT,
+            properties: {
+              reasoning: { type: SchemaType.STRING },
+              famousFor: { type: SchemaType.STRING }
+            },
+            required: ["reasoning", "famousFor"]
+          }
+        },
+      }),
+      12000 // 12s timeout
+    );
+    if (!result) { console.warn('[FinalGuess] Gemini timed out'); }
+    else {
+      const text = result.response.text();
+      const parsed = JSON.parse(text);
+      if (parsed.reasoning) return { reasoning: parsed.reasoning, famousFor: parsed.famousFor ?? topPlayer.famousFor };
+    }
+  } catch (e) {
+    console.error('[FinalGuess] Gemini failed:', e);
+  }
 
   return { reasoning: `The evidence converges unmistakably on ${topPlayer.name}.`, famousFor: topPlayer.famousFor };
 }
@@ -539,6 +547,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // ── BUILD RICH HISTORY ───────────────────────────────────────────
+    // Build rich Q&A history with actual question TEXT (not IDs) for context.
+    const richHistory: Array<{ question: string; answer: string }> = [];
+    for (const h of (rawHistory as any[])) {
+      const qId = h.questionId as string;
+      const ans = h.answer as string;
+      let qText = '';
+      if (qId?.startsWith('dyn_')) {
+        qText = (state as any).questionTexts?.[qId] ?? `[Dynamic Q #${richHistory.length + 1}]`;
+      } else {
+        const bankQ = QUESTION_BANK.find(q => q.id === qId);
+        qText = bankQ?.text ?? qId;
+      }
+      if (qText) richHistory.push({ question: qText, answer: ans });
+    }
+
     // ── 5. GUESS LOGIC (Prioritized for final turns) ─────────────────
     if (shouldGuess) {
       const rerankedScores = await semanticRerank(topCandidates, rawHistory);
@@ -557,7 +581,7 @@ export async function POST(req: NextRequest) {
       const p3 = finalCandidates[2]?.p_value || 0;
       const finalConf = p1 > 0.0001 ? (p1 / (p1 + p2 + p3)) * 100 : 0;
       
-      const { reasoning, famousFor } = await generateFinalGuess(topPlayer, finalConf, rawHistory);
+      const { reasoning, famousFor } = await generateFinalGuess(topPlayer, finalConf, richHistory);
 
       // Build runners-up for the UI (2nd and 3rd place)
       const runnersUp = finalCandidates.slice(1).map(c => ({
@@ -586,23 +610,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── 5. RAGQ ENGINE — Dynamic question generation on every turn ──────
-    // Build rich Q&A history with actual question TEXT (not IDs) for RAGQ context.
-    // Dynamic question texts are stored in the state itself to prevent repetition.
-    const richHistory: Array<{ question: string; answer: string }> = [];
-    for (const h of (rawHistory as any[])) {
-      const qId = h.questionId as string;
-      const ans = h.answer as string;
-      let qText = '';
-      if (qId?.startsWith('dyn_')) {
-        // Retrieve the actual question text stored in state to prevent RAGQ repetition
-        qText = (state as any).questionTexts?.[qId] ?? `[Dynamic Q #${richHistory.length + 1}]`;
-      } else {
-        const bankQ = QUESTION_BANK.find(q => q.id === qId);
-        qText = bankQ?.text ?? qId;
-      }
-      if (qText) richHistory.push({ question: qText, answer: ans });
-    }
+    // ── 6. RAGQ ENGINE — Dynamic question generation on every turn ──────
+    // (richHistory is already built above)
 
     let selectedQuestionId = '';
     let loreQuestion = '';
