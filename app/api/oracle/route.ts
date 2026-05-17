@@ -94,15 +94,21 @@ async function generateFinalGuess(
 ): Promise<{ reasoning: string; famousFor: string }> {
   const qaSummary = history.map((h, i) => `Q${i + 1}: ${h.question} → ${h.answer}`).join('\n');
 
-  const prompt = `You are the IPL Oracle. Based on these Q&A answers, craft a dramatic 1-sentence deduction explaining why the answer is ${topPlayer.name}.
+  const prompt = `You are the IPL Oracle revealing your final deduction for: ${topPlayer.name}.
 
-Evidence:
+Evidence collected during the game:
 ${qaSummary}
 
-Player known for: ${topPlayer.famousFor}
-Confidence: ${(confidence).toFixed(1)}%
+Candidate Profile:
+Role: ${topPlayer.role} | Country: ${topPlayer.country} | Era: ${topPlayer.era}
+Known for: ${topPlayer.famousFor}
 
-Respond ONLY with valid JSON: {"reasoning":"<1 dramatic sentence>","famousFor":"${topPlayer.famousFor.replace(/"/g, "'")}"}`;
+Task:
+Write a satisfying, step-by-step logical deduction explaining EXACTLY how you arrived at this player based on the user's specific answers. 
+Connect their answers directly to the player's profile (e.g., "Since you said YES to pace bowler and NO to Indian player, I knew we were looking for an overseas fast bowler. When you confirmed they played for CSK...").
+Keep it under 3-4 sentences. Make it sound like a brilliant detective revealing the truth.
+
+Respond ONLY with valid JSON: {"reasoning":"<your step-by-step deduction text>","famousFor":"${topPlayer.famousFor.replace(/"/g, "'")}"}`;
 
   try {
     const result = await gemini.generateContent({
