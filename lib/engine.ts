@@ -12,6 +12,7 @@ export interface BayesianState {
   history: Array<{ questionId: string; answer: Answer }>;
   maybeCount: number;
   phase: 1 | 2 | 3 | 4;
+  dynamicQuestions?: Record<string, Record<string, boolean>>;
 }
 
 // ── 1. HARD CONSTRAINTS ──────────────────────────────────────────────────
