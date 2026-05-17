@@ -204,10 +204,10 @@ Return ONLY a valid JSON object with this exact structure (no markdown, just JSO
 {
   "question": "<the YES/NO question>",
   "hint": "<a short mysterious hint>",
-  "appliesTo": {
-    "<player_id_1>": true,
-    "<player_id_2>": false
-  }
+  "appliesTo": [
+    { "playerId": "<player_id_1>", "applies": true },
+    { "playerId": "<player_id_2>", "applies": false }
+  ]
 }`;
 
   try {
@@ -223,8 +223,15 @@ Return ONLY a valid JSON object with this exact structure (no markdown, just JSO
             question: { type: SchemaType.STRING },
             hint: { type: SchemaType.STRING },
             appliesTo: {
-              type: SchemaType.OBJECT,
-              additionalProperties: { type: SchemaType.BOOLEAN }
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  playerId: { type: SchemaType.STRING },
+                  applies: { type: SchemaType.BOOLEAN }
+                },
+                required: ["playerId", "applies"]
+              }
             }
           },
           required: ["question", "hint", "appliesTo"]
@@ -232,7 +239,15 @@ Return ONLY a valid JSON object with this exact structure (no markdown, just JSO
       },
     });
     const text = result.response.text();
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+    
+    // Convert array back to dictionary
+    const appliesToMap: Record<string, boolean> = {};
+    for (const item of parsed.appliesTo) {
+      appliesToMap[item.playerId] = item.applies;
+    }
+    
+    return { ...parsed, appliesTo: appliesToMap };
   } catch (err) {
     console.error('Dynamic Question Error:', err);
     return null;
