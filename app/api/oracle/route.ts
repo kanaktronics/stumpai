@@ -23,10 +23,6 @@ const gemini = genAI.getGenerativeModel({
   model: 'gemini-3.1-pro-preview',
   systemInstruction: 'You are the IPL Oracle, a legendary cricket analyst with encyclopedic knowledge of IPL stats, player lore, and specific match moments.'
 });
-const geminiFlash = genAI.getGenerativeModel({ 
-  model: 'gemini-2.5-flash',
-  systemInstruction: 'You are the IPL Oracle, a legendary cricket analyst with encyclopedic knowledge of IPL stats, player lore, and specific match moments.'
-});
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -321,7 +317,7 @@ The appliesTo array MUST contain one entry for every candidate ID listed above.`
 
   try {
     const result = await withTimeout(
-      geminiFlash.generateContent({
+      gemini.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: isLateGame ? 0.75 : 0.6,
@@ -329,7 +325,7 @@ The appliesTo array MUST contain one entry for every candidate ID listed above.`
           responseMimeType: 'application/json',
         },
       }),
-      25000 // 25s timeout — Gemini Pro needs time for rich candidate profiles
+      40000 // 40s timeout — Gemini Pro needs time for rich candidate profiles
     );
 
     if (!result) return null;
