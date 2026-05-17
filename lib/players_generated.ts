@@ -1,4 +1,5 @@
 import { Player } from './types';
+
 export const PLAYERS: Player[] = [
   {
     "id": "ms-dhoni",
@@ -968,39 +969,6 @@ export const PLAYERS: Player[] = [
     },
     "era": "golden"
   },
-  
-    "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL centurion",
-      "IPL stalwart"
-    ],
-    "auraEmbedding": {
-      "composed": 0.88,
-      "aggressive": 0.61,
-      "explosive": 0.6,
-      "innovative": 0.45,
-      "captainLike": 0.46,
-      "silentKiller": 0.5
-    }
-  },
-  
-    "identityTags": [
-      "RCB loyalist",
-      "match-winner",
-      "death overs match finisher",
-      "IPL centurion",
-      "IPL stalwart"
-    ],
-    "auraEmbedding": {
-      "composed": 0.76,
-      "aggressive": 0.35,
-      "explosive": 0.65,
-      "innovative": 0.45,
-      "captainLike": 0.46,
-      "silentKiller": 0.5
-    }
-  },
   {
     "id": "fe93fd9d",
     "name": "Ravindra Jadeja",
@@ -1875,22 +1843,6 @@ export const PLAYERS: Player[] = [
       "innovative": 0.45,
       "captainLike": 0.39,
       "silentKiller": 0.37
-    }
-  },
-  
-    "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL centurion",
-      "IPL stalwart"
-    ],
-    "auraEmbedding": {
-      "composed": 0.73,
-      "aggressive": 0.35,
-      "explosive": 0.65,
-      "innovative": 0.7,
-      "captainLike": 0.45,
-      "silentKiller": 0.47
     }
   },
   {
@@ -3958,22 +3910,6 @@ export const PLAYERS: Player[] = [
       "silentKiller": 0.5
     }
   },
-  
-    "identityTags": [
-      "MI loyalist",
-      "match-winner",
-      "death over specialist",
-      "IPL stalwart"
-    ],
-    "auraEmbedding": {
-      "composed": 0.37,
-      "aggressive": 0.24,
-      "explosive": 0.36,
-      "innovative": 0.45,
-      "captainLike": 0.39,
-      "silentKiller": 0.37
-    }
-  },
   {
     "id": "bb345e0b",
     "name": "G Gambhir",
@@ -4921,22 +4857,6 @@ export const PLAYERS: Player[] = [
       "innovative": 0.45,
       "captainLike": 0.39,
       "silentKiller": 0.37
-    }
-  },
-  
-    "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL centurion",
-      "IPL stalwart"
-    ],
-    "auraEmbedding": {
-      "composed": 0.76,
-      "aggressive": 0.69,
-      "explosive": 0.73,
-      "innovative": 0.45,
-      "captainLike": 0.46,
-      "silentKiller": 0.5
     }
   },
   {
@@ -6601,22 +6521,6 @@ export const PLAYERS: Player[] = [
       "innovative": 0.2,
       "captainLike": 0.35,
       "silentKiller": 0.29
-    }
-  },
-  
-    "identityTags": [
-      "MI loyalist",
-      "match-winner",
-      "death over specialist",
-      "IPL stalwart"
-    ],
-    "auraEmbedding": {
-      "composed": 0.26,
-      "aggressive": 0.29,
-      "explosive": 0.4,
-      "innovative": 0.45,
-      "captainLike": 0.32,
-      "silentKiller": 0.26
     }
   },
   {
