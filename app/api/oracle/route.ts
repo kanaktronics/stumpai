@@ -83,11 +83,11 @@ Respond ONLY with valid JSON: {"question":"<created question>","hint":"${hint.re
 
   try {
     const result = await withTimeout(
-      gemini.generateContent({
+      geminiFlash.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { 
           temperature: 0.7, 
-          maxOutputTokens: 200,
+          maxOutputTokens: 120,
           responseMimeType: 'application/json',
           responseSchema: {
             type: SchemaType.OBJECT,
@@ -99,7 +99,7 @@ Respond ONLY with valid JSON: {"question":"<created question>","hint":"${hint.re
           }
         },
       }),
-      5000 // 5s timeout — fall back to raw question if Gemini is slow
+      3000 // 3s hard timeout — Flash is fast; raw fallback if still slow
     );
     if (result) {
       const text = result.response.text();
@@ -598,15 +598,16 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 5. RAGQ ENGINE — Dynamic question generation on every turn ──────
-    // Build rich Q&A history with actual question TEXT (not IDs) for RAGQ context
+    // Build rich Q&A history with actual question TEXT (not IDs) for RAGQ context.
+    // Dynamic question texts are stored in the state itself to prevent repetition.
     const richHistory: Array<{ question: string; answer: string }> = [];
     for (const h of (rawHistory as any[])) {
       const qId = h.questionId as string;
       const ans = h.answer as string;
       let qText = '';
       if (qId?.startsWith('dyn_')) {
-        // For dynamic questions, we stored the text in the response — use a placeholder
-        qText = `[Dynamic Oracle Question #${richHistory.length + 1}]`;
+        // Retrieve the actual question text stored in state to prevent RAGQ repetition
+        qText = (state as any).questionTexts?.[qId] ?? `[Dynamic Q #${richHistory.length + 1}]`;
       } else {
         const bankQ = QUESTION_BANK.find(q => q.id === qId);
         qText = bankQ?.text ?? qId;
@@ -648,10 +649,12 @@ export async function POST(req: NextRequest) {
       loreHint = dynResult.hint || '';
       if (!state.dynamicQuestions) state.dynamicQuestions = {};
       state.dynamicQuestions[selectedQuestionId] = dynResult.appliesTo;
-      console.log(`[RAGQ] ✅ Question generated: "${loreQuestion.slice(0, 80)}"`);
+      // Store question text in state so future turns can retrieve it (no repetition)
+      if (!(state as any).questionTexts) (state as any).questionTexts = {};
+      (state as any).questionTexts[selectedQuestionId] = loreQuestion;
+      console.log(`[RAGQ] ✅ Late-game Q: "${loreQuestion.slice(0, 80)}"`);
     } else {
-      // ── MCTS SAFETY FALLBACK (fires only if RAGQ times out or fails) ──
-      console.log(`[RAGQ] ⚠️ Failed (${ragqError}) — falling back to MCTS`);
+      // ── MCTS + GEMINI FLASH FLAVOR (early game — fast, precise, no JSON overhead) ──
       const phaseBank = getPhaseQuestions(state.phase);
       const options: SelectableQuestion[] = phaseBank
         .filter(q => !askedIds.has(q.id))
@@ -659,12 +662,16 @@ export async function POST(req: NextRequest) {
 
       const mctsResult = mctsSelectBestQuestion(state, options);
       const bankQ = QUESTION_BANK.find(q => q.id === mctsResult?.question?.id) ?? QUESTION_BANK[0];
-      console.log(`[MCTS FALLBACK] Selected Q: "${bankQ.id}" | IG: ${mctsResult?.gain?.toFixed(4)}`);
+      console.log(`[MCTS+FLASH] Selected Q: "${bankQ.id}" | IG: ${mctsResult?.gain?.toFixed(4)}`);
 
+      // Flash flavor-wraps the MCTS question for natural language — very fast (<1s)
       const res = await generateLoreQuestion(bankQ.text, bankQ.hint, topCandidates, rawHistory.length);
       loreQuestion = res.question;
       loreHint = res.hint;
       selectedQuestionId = bankQ.id;
+      // Store MCTS question text too so richHistory has full context
+      if (!(state as any).questionTexts) (state as any).questionTexts = {};
+      (state as any).questionTexts[bankQ.id] = loreQuestion;
     }
 
     return NextResponse.json({

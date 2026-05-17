@@ -151,10 +151,10 @@ export function updateProbabilities(
   // Forces convergence by sharpening the distribution as the game progresses.
   // Early turns: soft/forgiving. Late turns: aggressive commitment.
   const turn = state.history.length;
-  let alpha = 1.0;
-  if (turn >= 4) alpha = 1.2;  // Warm
-  if (turn >= 7) alpha = 1.6;  // Cool
-  if (turn >= 10) alpha = 2.0; // Max constraint to prevent the right answer dying from one false 'No'
+  let alpha = 1.2;              // Always sharpen, even on turn 0
+  if (turn >= 2) alpha = 1.5;  // Turn 2: aggressive elimination
+  if (turn >= 5) alpha = 2.0;  // Turn 5: near-deterministic
+  if (turn >= 8) alpha = 2.5;  // Turn 8: commit hard
 
   // Normalize and compute the definitive active pool ONCE.
   const rawProbs = Object.keys(newState.probabilities).map(id => ({
@@ -168,9 +168,10 @@ export function updateProbabilities(
     }
   }
 
-  // Active pool = players holding at least 0.05% of probability mass (post-normalization).
+  // Active pool = players with >0.5% probability mass (raised from 0.05% to match Akinator speed).
+  // With 809 players, a 50/50 YES split means NO players drop to ~0.002% — well below this cutoff.
   newState.activePool = Object.keys(newState.probabilities).filter(
-    id => newState.probabilities[id] > 0.0005
+    id => newState.probabilities[id] > 0.005
   );
 
   // ── EMBEDDING SIMILARITY BONUS ────────────────────────────────────────
