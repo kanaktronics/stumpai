@@ -66,10 +66,10 @@ export function updateProbabilities(
   if (answer === 'dont-know') newState.maybeCount = (state.maybeCount || 0) + 1;
 
   const scoreYes        = 1.0;
-  const scoreProbYes    = 0.7;
+  const scoreProbYes    = 0.85;
   const scoreDontKnow   = 1.0;
-  const scoreProbNo     = 0.3;
-  const scoreNo         = 0.05; // Base hard "No" penalty
+  const scoreProbNo     = 0.15;
+  const scoreNo         = 0.01; // Aggressive hard "No" penalty
 
   // ── DNA TRAIT MAP: maps question IDs → identityDNA keys ─────────────────
   // This lets us look up how strongly a player's IDENTITY embodies a trait

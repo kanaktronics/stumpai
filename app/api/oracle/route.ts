@@ -617,29 +617,35 @@ export async function POST(req: NextRequest) {
     let selectedQuestionId = '';
     let loreQuestion = '';
     let loreHint = '';
-    let questionSource = 'mcts'; // track for UI badge
+    let questionSource = 'ragq'; // Always show RAGQ badge since Gemini flavor-wraps everything
     let ragqError = '';
 
-    // Give RAGQ the top 20 surviving candidates (or top 10 in late game)
-    const ragqCandidates = topCandidates.slice(0, state.activePool.length <= 10 ? 10 : 20);
-    console.log(`[RAGQ] Firing for pool=${state.activePool.length}, history=${richHistory.length}`);
+    const isLateGame = state.activePool.length <= 15;
     
-    let dynResult;
-    try {
-      dynResult = await generateDynamicQuestion(ragqCandidates, richHistory, state.activePool.length);
-      if (!dynResult) {
-         ragqError = 'Returned null (timeout or degenerate split)';
+    let dynResult = null;
+    
+    // Only use full RAGQ JSON parsing when candidate pool is small enough to not break Bayesian math
+    if (isLateGame) {
+      const ragqCandidates = topCandidates.slice(0, state.activePool.length <= 10 ? 10 : 20);
+      console.log(`[RAGQ] Firing for pool=${state.activePool.length}, history=${richHistory.length}`);
+      
+      try {
+        dynResult = await generateDynamicQuestion(ragqCandidates, richHistory, state.activePool.length);
+        if (!dynResult) {
+           ragqError = 'Returned null (timeout or degenerate split)';
+        }
+      } catch (err: any) {
+        ragqError = err.message || String(err);
+        console.error('[RAGQ] Error:', err);
       }
-    } catch (err: any) {
-      ragqError = err.message || String(err);
-      console.error('[RAGQ] Error:', err);
+    } else {
+      console.log(`[RAGQ] Pool size > 15 (${state.activePool.length}). Deferring to high-speed MCTS flavor mode.`);
     }
 
     if (dynResult && dynResult.question && dynResult.appliesTo) {
       selectedQuestionId = 'dyn_' + Date.now() + Math.floor(Math.random() * 1000);
       loreQuestion = dynResult.question;
       loreHint = dynResult.hint || '';
-      questionSource = 'ragq';
       if (!state.dynamicQuestions) state.dynamicQuestions = {};
       state.dynamicQuestions[selectedQuestionId] = dynResult.appliesTo;
       console.log(`[RAGQ] ✅ Question generated: "${loreQuestion.slice(0, 80)}"`);
