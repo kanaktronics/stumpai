@@ -186,70 +186,126 @@ Respond with ONLY valid JSON array: [{"id":"<player_id>","score":<0-100>}, ...]`
 }
 
 async function generateDynamicQuestion(
-  topCandidates: { player: Player; p_value: number }[]
-): Promise<{ question: string; hint: string; appliesTo: Record<string, boolean> } | null> {
-  const candidateProfiles = topCandidates.map(c => {
-    return `- ${c.player.name} (${c.player.id}): Teams: ${c.player.teams.join(', ')} | Role: ${c.player.role} | Tags: ${(c.player.identityTags || []).slice(0, 3).join(', ')}`;
+  topCandidates: { player: Player; p_value: number }[],
+  history: Array<{ question: string; answer: string }>,
+  poolSize: number,
+): Promise<{ question: string; hint: string; appliesTo: Record<string, boolean>; reasoning?: string } | null> {
+  
+  const isLateGame = poolSize <= 10;
+  const qIndex = history.length;
+
+  // ── Rich candidate profiles for RAGQ ─────────────────────────────────────
+  const candidateProfiles = topCandidates.slice(0, isLateGame ? 10 : 20).map(c => {
+    const dna = c.player.identityDNA ?? {};
+    const topDNA = Object.entries(dna)
+      .filter(([, v]) => (v as number) > 0.6)
+      .map(([k, v]) => `${k}:${(v as number).toFixed(2)}`)
+      .slice(0, 4)
+      .join(', ');
+    return [
+      `ID:${c.player.id} | ${c.player.name}`,
+      `Role:${c.player.role} | Country:${c.player.country}`,
+      `Bat:${c.player.battingStyle} | Bowl:${c.player.bowlingStyle}`,
+      `Teams:${c.player.teams.slice(0, 3).join(', ')}`,
+      `Era:${c.player.era} | Tags:${(c.player.identityTags ?? []).slice(0, 3).join(', ')}`,
+      topDNA ? `DNA:${topDNA}` : '',
+    ].filter(Boolean).join(' | ');
   });
 
-  const prompt = `You are the IPL Oracle. We are in the final stages of a player guessing game.
-The remaining candidates are:
+  // ── Q&A history summary ───────────────────────────────────────────────────
+  const historyCtx = history.length > 0
+    ? history.map((h, i) => `Q${i+1}: "${h.question}" → ${h.answer.toUpperCase()}`).join('\n')
+    : 'No questions asked yet — first question.';
+
+  const modeInstructions = isLateGame
+    ? `LATE-GAME PRECISION MODE (${poolSize} candidates). Generate a hyper-specific, lore-deep question that perfectly splits the remaining ${poolSize} candidates. Focus on: iconic match moments, franchise legacy, specific captaincy history, death-over heroics, specific seasons, fan-culture associations.`
+    : `EARLY-GAME ENTROPY MODE (${poolSize} candidates). Generate a high-information-gain question that eliminates the maximum number of wrong candidates. Focus on: role archetype, team affiliation, country, era, batting/bowling style, career span.`;
+
+  const prompt = `You are the RAGQ Engine — the cognitive core of Stump.AI, a Neuro-Symbolic IPL Player Deduction system.
+
+${modeInstructions}
+
+QUESTION INDEX: ${qIndex + 1}
+
+Q&A EVIDENCE SO FAR (these questions have already been asked — DO NOT REPEAT them):
+${historyCtx}
+
+SURVIVING CANDIDATE POOL (${topCandidates.length} players):
 ${candidateProfiles.join('\n')}
 
-INVENT a highly specific, lore-accurate YES/NO question that applies to exactly SOME of these players, but NOT ALL. 
-The question should focus on unique traits, signature moments, specific teams they captained, or rare stats.
-The goal is to split the candidates perfectly.
+YOUR TASK:
+Generate the SINGLE BEST discriminative YES/NO question that:
+1. Maximizes information gain over the surviving pool
+2. Applies to SOME but NOT ALL of the listed candidates
+3. Does NOT repeat any question already asked above
+4. Sounds human-like and natural to an IPL fan
+5. For each candidate, indicate TRUE (question applies to them) or FALSE (it does not)
 
-Return ONLY a valid JSON object with this exact structure (no markdown, just JSON):
-{
-  "question": "<the YES/NO question>",
-  "hint": "<a short mysterious hint>",
-  "appliesTo": [
-    { "playerId": "<player_id_1>", "applies": true },
-    { "playerId": "<player_id_2>", "applies": false }
-  ]
-}`;
+CONSTRAINTS:
+- Do not use exact statistics or scorecards
+- Avoid compound questions (no "and"/"or" in questions)
+- Avoid impossible trivia
+- Adapt your tone to the candidate identity space (captain, finisher, mystery spinner, etc.)
+- The question must produce a meaningful split — not 100% yes or 100% no
+
+Return a JSON object. The appliesTo field MUST include an entry for every candidate ID listed above.`;
 
   try {
-    const result = await gemini.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { 
-        temperature: 0.7, 
-        maxOutputTokens: 500,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            question: { type: SchemaType.STRING },
-            hint: { type: SchemaType.STRING },
-            appliesTo: {
-              type: SchemaType.ARRAY,
-              items: {
-                type: SchemaType.OBJECT,
-                properties: {
-                  playerId: { type: SchemaType.STRING },
-                  applies: { type: SchemaType.BOOLEAN }
-                },
-                required: ["playerId", "applies"]
+    const result = await withTimeout(
+      gemini.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: isLateGame ? 0.75 : 0.6,
+          maxOutputTokens: 800,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: SchemaType.OBJECT,
+            properties: {
+              question:   { type: SchemaType.STRING },
+              hint:       { type: SchemaType.STRING },
+              reasoning:  { type: SchemaType.STRING },
+              appliesTo: {
+                type: SchemaType.ARRAY,
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    playerId: { type: SchemaType.STRING },
+                    applies:  { type: SchemaType.BOOLEAN }
+                  },
+                  required: ['playerId', 'applies']
+                }
               }
-            }
-          },
-          required: ["question", "hint", "appliesTo"]
-        }
-      },
-    });
-    const text = result.response.text();
-    const parsed = JSON.parse(text);
-    
-    // Convert array back to dictionary
+            },
+            required: ['question', 'hint', 'appliesTo']
+          }
+        },
+      }),
+      8000 // 8s timeout for RAGQ — fall back to MCTS if slow
+    );
+
+    if (!result) return null;
+
+    const parsed = JSON.parse(result.response.text());
+
+    // Validate split quality — reject if all-yes or all-no
+    const yesCount = parsed.appliesTo.filter((a: {applies: boolean}) => a.applies).length;
+    const noCount = parsed.appliesTo.length - yesCount;
+    if (yesCount === 0 || noCount === 0) {
+      console.warn('[RAGQ] Rejected degenerate split (all-yes or all-no)');
+      return null;
+    }
+
+    // Convert array to dictionary
     const appliesToMap: Record<string, boolean> = {};
     for (const item of parsed.appliesTo) {
       appliesToMap[item.playerId] = item.applies;
     }
-    
+
+    console.log(`[RAGQ] Q: "${parsed.question}" | YES:${yesCount} NO:${noCount} | Reasoning: ${parsed.reasoning ?? 'N/A'}`);
     return { ...parsed, appliesTo: appliesToMap };
+
   } catch (err) {
-    console.error('Dynamic Question Error:', err);
+    console.error('[RAGQ] Generation error:', err);
     return null;
   }
 }
@@ -452,27 +508,25 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── 5. NEXT QUESTION SELECTION ─────────────────────────────────
+    // ── 5. RAGQ ENGINE — Dynamic question generation on every turn ──────
+    // Gemini generates the most contextually optimal question for this exact
+    // candidate pool + Q&A history. MCTS is a silent fallback.
     let selectedQuestionId = '';
     let loreQuestion = '';
     let loreHint = '';
 
-    // If we have <= 10 candidates, unleash the Hybrid Neuro-Symbolic Engine to invent a perfect dynamic question
-    if (state.activePool.length <= 10 && state.activePool.length > 1) {
-      const dynResult = await generateDynamicQuestion(topCandidates.slice(0, 10));
-      if (dynResult && dynResult.question && dynResult.appliesTo) {
-        selectedQuestionId = 'dyn_' + Date.now() + Math.floor(Math.random() * 1000);
-        loreQuestion = dynResult.question;
-        loreHint = dynResult.hint || '';
-        
-        if (!state.dynamicQuestions) state.dynamicQuestions = {};
-        state.dynamicQuestions[selectedQuestionId] = dynResult.appliesTo;
-        console.log(`[ORACLE DYNAMIC] Invented Q: "${loreQuestion}"`);
-      }
-    }
+    // Give RAGQ the top 20 surviving candidates (or top 10 in late game)
+    const ragqCandidates = topCandidates.slice(0, state.activePool.length <= 10 ? 10 : 20);
+    const dynResult = await generateDynamicQuestion(ragqCandidates, rawHistory, state.activePool.length);
 
-    // Fallback to standard MCTS selection
-    if (!selectedQuestionId) {
+    if (dynResult && dynResult.question && dynResult.appliesTo) {
+      selectedQuestionId = 'dyn_' + Date.now() + Math.floor(Math.random() * 1000);
+      loreQuestion = dynResult.question;
+      loreHint = dynResult.hint || '';
+      if (!state.dynamicQuestions) state.dynamicQuestions = {};
+      state.dynamicQuestions[selectedQuestionId] = dynResult.appliesTo;
+    } else {
+      // ── MCTS SAFETY FALLBACK (fires only if RAGQ times out or fails) ──
       const phaseBank = getPhaseQuestions(state.phase);
       const options: SelectableQuestion[] = phaseBank
         .filter(q => !askedIds.has(q.id))
@@ -480,8 +534,7 @@ export async function POST(req: NextRequest) {
 
       const mctsResult = mctsSelectBestQuestion(state, options);
       const bankQ = QUESTION_BANK.find(q => q.id === mctsResult?.question?.id) ?? QUESTION_BANK[0];
-
-      console.log(`[ORACLE IG] Selected Q: "${bankQ.id}" | IG Gain: ${mctsResult?.gain?.toFixed(4)} | pYes: ${((mctsResult?.debugInfo?.pYes ?? 0) * 100).toFixed(1)}% | SplitQuality: ${(mctsResult?.debugInfo?.splitQuality ?? 0).toFixed(3)}`);
+      console.log(`[MCTS FALLBACK] Selected Q: "${bankQ.id}" | IG: ${mctsResult?.gain?.toFixed(4)}`);
 
       const res = await generateLoreQuestion(bankQ.text, bankQ.hint, topCandidates, rawHistory.length);
       loreQuestion = res.question;
