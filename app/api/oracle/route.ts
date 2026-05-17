@@ -20,15 +20,18 @@ import { checkRateLimit } from '@/lib/ratelimit';
 
 const genAI  = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const gemini = genAI.getGenerativeModel({ 
-  model: 'gemini-1.5-pro',
+  model: 'gemini-3.1-pro-preview',
+  systemInstruction: 'You are the IPL Oracle, a legendary cricket analyst with encyclopedic knowledge of IPL stats, player lore, and specific match moments.'
+});
+const geminiFlash = genAI.getGenerativeModel({ 
+  model: 'gemini-2.5-flash',
   systemInstruction: 'You are the IPL Oracle, a legendary cricket analyst with encyclopedic knowledge of IPL stats, player lore, and specific match moments.'
 });
 
-/** Abort a promise after `ms` milliseconds. Falls through to null on timeout. */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<null>(resolve => setTimeout(() => resolve(null), ms))
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`TIMEOUT after ${ms}ms`)), ms))
   ]);
 }
 
@@ -305,36 +308,25 @@ CONSTRAINTS
 - Question must be answerable by any IPL fan with general knowledge
 - The question MUST produce a meaningful binary split (not 100% yes or 100% no)
 
-Return a JSON object. The appliesTo array MUST contain one entry for every candidate ID listed above.`;
+Return ONLY a JSON object matching this exact structure:
+{
+  "question": "The YES/NO question text",
+  "hint": "A contextual hint for the user",
+  "reasoning": "Why this question minimizes entropy",
+  "appliesTo": [
+    { "playerId": "string", "applies": true/false }
+  ]
+}
+The appliesTo array MUST contain one entry for every candidate ID listed above.`;
 
   try {
     const result = await withTimeout(
-      gemini.generateContent({
+      geminiFlash.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: isLateGame ? 0.75 : 0.6,
           maxOutputTokens: 800,
           responseMimeType: 'application/json',
-          responseSchema: {
-            type: SchemaType.OBJECT,
-            properties: {
-              question:   { type: SchemaType.STRING },
-              hint:       { type: SchemaType.STRING },
-              reasoning:  { type: SchemaType.STRING },
-              appliesTo: {
-                type: SchemaType.ARRAY,
-                items: {
-                  type: SchemaType.OBJECT,
-                  properties: {
-                    playerId: { type: SchemaType.STRING },
-                    applies:  { type: SchemaType.BOOLEAN }
-                  },
-                  required: ['playerId', 'applies']
-                }
-              }
-            },
-            required: ['question', 'hint', 'appliesTo']
-          }
         },
       }),
       25000 // 25s timeout — Gemini Pro needs time for rich candidate profiles
@@ -342,14 +334,20 @@ Return a JSON object. The appliesTo array MUST contain one entry for every candi
 
     if (!result) return null;
 
-    const parsed = JSON.parse(result.response.text());
+    const rawText = result.response.text();
+    let cleanText = rawText;
+    if (cleanText.startsWith('```json')) cleanText = cleanText.substring(7);
+    if (cleanText.startsWith('```')) cleanText = cleanText.substring(3);
+    if (cleanText.endsWith('```')) cleanText = cleanText.substring(0, cleanText.length - 3);
+    
+    const parsed = JSON.parse(cleanText.trim());
 
     // Validate split quality — reject if all-yes or all-no
     const yesCount = parsed.appliesTo.filter((a: {applies: boolean}) => a.applies).length;
     const noCount = parsed.appliesTo.length - yesCount;
     if (yesCount === 0 || noCount === 0) {
       console.warn('[RAGQ] Rejected degenerate split (all-yes or all-no)');
-      return null;
+      throw new Error(`Degenerate split (YES:${yesCount} NO:${noCount})`);
     }
 
     // Convert array to dictionary
@@ -586,11 +584,22 @@ export async function POST(req: NextRequest) {
     let loreQuestion = '';
     let loreHint = '';
     let questionSource = 'mcts'; // track for UI badge
+    let ragqError = '';
 
     // Give RAGQ the top 20 surviving candidates (or top 10 in late game)
     const ragqCandidates = topCandidates.slice(0, state.activePool.length <= 10 ? 10 : 20);
     console.log(`[RAGQ] Firing for pool=${state.activePool.length}, history=${richHistory.length}`);
-    const dynResult = await generateDynamicQuestion(ragqCandidates, richHistory, state.activePool.length);
+    
+    let dynResult;
+    try {
+      dynResult = await generateDynamicQuestion(ragqCandidates, richHistory, state.activePool.length);
+      if (!dynResult) {
+         ragqError = 'Returned null (timeout or degenerate split)';
+      }
+    } catch (err: any) {
+      ragqError = err.message || String(err);
+      console.error('[RAGQ] Error:', err);
+    }
 
     if (dynResult && dynResult.question && dynResult.appliesTo) {
       selectedQuestionId = 'dyn_' + Date.now() + Math.floor(Math.random() * 1000);
@@ -602,7 +611,7 @@ export async function POST(req: NextRequest) {
       console.log(`[RAGQ] ✅ Question generated: "${loreQuestion.slice(0, 80)}"`);
     } else {
       // ── MCTS SAFETY FALLBACK (fires only if RAGQ times out or fails) ──
-      console.log('[RAGQ] ⚠️ Timed out or failed — falling back to MCTS');
+      console.log(`[RAGQ] ⚠️ Failed (${ragqError}) — falling back to MCTS`);
       const phaseBank = getPhaseQuestions(state.phase);
       const options: SelectableQuestion[] = phaseBank
         .filter(q => !askedIds.has(q.id))
@@ -626,6 +635,7 @@ export async function POST(req: NextRequest) {
         confidence_percentage: parseFloat(conf.toFixed(2)),
         eliminated_count: eliminatedThisTurn,
         question_source: questionSource, // 'ragq' | 'mcts'
+        debug_ragq_error: ragqError,
       },
       oracle_output: { 
         question: loreQuestion, 
