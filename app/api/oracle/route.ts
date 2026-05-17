@@ -218,35 +218,86 @@ async function generateDynamicQuestion(
     : 'No questions asked yet — first question.';
 
   const modeInstructions = isLateGame
-    ? `LATE-GAME PRECISION MODE (${poolSize} candidates). Generate a hyper-specific, lore-deep question that perfectly splits the remaining ${poolSize} candidates. Focus on: iconic match moments, franchise legacy, specific captaincy history, death-over heroics, specific seasons, fan-culture associations.`
-    : `EARLY-GAME ENTROPY MODE (${poolSize} candidates). Generate a high-information-gain question that eliminates the maximum number of wrong candidates. Focus on: role archetype, team affiliation, country, era, batting/bowling style, career span.`;
+    ? `ADAPTIVE CONFIDENCE ROUTING — LATE-GAME PRECISION MODE (${poolSize} candidates remaining).\nSemantic entropy is critically low. Activate hyper-contextual lore-based interrogation.\nFocus on: iconic match moments, franchise legacy, specific captaincy history, death-over heroics, fan-culture associations, recognisable gameplay signatures.`
+    : `ADAPTIVE CONFIDENCE ROUTING — EARLY-GAME ENTROPY MODE (${poolSize} candidates remaining).\nSemantic entropy is high. Activate broad role-based and structural discriminative questioning.\nFocus on: role archetype, team affiliation, country of origin, IPL era, batting/bowling style, career longevity.`;
 
-  const prompt = `You are the RAGQ Engine — the cognitive core of Stump.AI, a Neuro-Symbolic IPL Player Deduction system.
+  const prompt = `SYSTEM SPECIFICATION — STUMP.AI RAGQ ENGINE v2.0
+Powered by Google Gemini 3.1 Pro reasoning infrastructure.
 
+You are the Retrieval-Augmented Generative Questioning (RAGQ) Engine — the neuro-symbolic cognitive reasoning layer of Stump.AI, a contextual IPL player deduction system built for the "Build with AI – Agentic Premier League" hackathon.
+
+This system is NOT a quiz engine. It is a live semantic entropy minimization system that dynamically constructs an optimal interrogation path through IPL player-space using Bayesian confidence updating and Google Gemini 3.1 Pro reasoning infrastructure.
+
+==================================================
+CURRENT ROUTING DECISION
+==================================================
 ${modeInstructions}
 
 QUESTION INDEX: ${qIndex + 1}
 
-Q&A EVIDENCE SO FAR (these questions have already been asked — DO NOT REPEAT them):
+==================================================
+Q&A EVIDENCE LOG (Verified Context — DO NOT REPEAT)
+==================================================
 ${historyCtx}
 
-SURVIVING CANDIDATE POOL (${topCandidates.length} players):
+==================================================
+SURVIVING CANDIDATE POOL — VERIFIED METADATA
+==================================================
+The following candidates are grounded in retrieved IPL metadata. Treat every attribute as verified fact.
 ${candidateProfiles.join('\n')}
 
-YOUR TASK:
+==================================================
+OBJECTIVE — SEMANTIC ENTROPY MINIMIZATION
+==================================================
 Generate the SINGLE BEST discriminative YES/NO question that:
-1. Maximizes information gain over the surviving pool
-2. Applies to SOME but NOT ALL of the listed candidates
-3. Does NOT repeat any question already asked above
-4. Sounds human-like and natural to an IPL fan
-5. For each candidate, indicate TRUE (question applies to them) or FALSE (it does not)
+1. Maximally reduces semantic entropy over the surviving candidate pool
+2. Applies to SOME but NOT ALL listed candidates (meaningful binary split)
+3. Does NOT repeat any question already in the Q&A Evidence Log above
+4. Sounds natural and human-like to an IPL cricket fan
+5. For every candidate ID, return TRUE (question applies) or FALSE (it does not)
 
-CONSTRAINTS:
-- Do not use exact statistics or scorecards
-- Avoid compound questions (no "and"/"or" in questions)
-- Avoid impossible trivia
-- Adapt your tone to the candidate identity space (captain, finisher, mystery spinner, etc.)
-- The question must produce a meaningful split — not 100% yes or 100% no
+==================================================
+FACTUAL GROUNDING & HALLUCINATION PREVENTION
+==================================================
+You MUST remain strictly grounded in the provided candidate metadata and retrieved IPL context above.
+
+You are STRICTLY FORBIDDEN from:
+- inventing IPL events, matches, or moments not inferable from provided metadata
+- fabricating player achievements or awards not present in candidate attributes
+- hallucinating franchise history or transfer records
+- generating false statistics or scorecards
+- creating fictional cricket lore or meme associations
+
+All generated questions MUST be inferable from:
+- retrieved candidate metadata (Role, Country, Teams, Era, Tags, DNA vectors)
+- semantic identity tags and aura embeddings above
+- historically verified IPL context derivable from the attributes shown
+
+If your confidence in a semantic association is LOW:
+- generate a BROADER but FACTUALLY SAFER discriminative question instead
+- prioritise factual consistency over excessive specificity
+
+Hallucination directly undermines system integrity during live demonstration.
+
+==================================================
+ADAPTIVE QUESTION STYLE
+==================================================
+Adapt your questioning tone to the dominant identity space of the surviving pool:
+- Captains → leadership aura, franchise loyalty, strategic presence
+- Finishers → death-over composure, match-winning records
+- Mystery Spinners → unpredictability, economy rates, batting cameos
+- Power Hitters → six-hitting identity, aggressive batting style
+- Pace Bowlers → aggression, new-ball threat, economy under pressure
+
+==================================================
+CONSTRAINTS
+==================================================
+- No compound questions (avoid "and" / "or" constructions)
+- No impossible trivia or niche scorecards
+- Question must be answerable by any IPL fan with general knowledge
+- The question MUST produce a meaningful binary split (not 100% yes or 100% no)
+
+Return a JSON object. The appliesTo array MUST contain one entry for every candidate ID listed above.`;
 
 Return a JSON object. The appliesTo field MUST include an entry for every candidate ID listed above.`;
 
