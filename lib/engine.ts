@@ -55,9 +55,6 @@ export function updateProbabilities(
   answer: Answer,
   attrResolver: ((p: Player) => boolean) | string  // fn or direct field key
 ): BayesianState {
-  if (answer === 'dont-know') {
-    return { ...state, history: [...state.history, { questionId, answer }] };
-  }
 
   const newState = { ...state };
   newState.probabilities = { ...state.probabilities };
