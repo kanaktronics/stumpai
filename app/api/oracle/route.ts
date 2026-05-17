@@ -21,7 +21,33 @@ import { checkRateLimit } from '@/lib/ratelimit';
 const genAI  = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const gemini = genAI.getGenerativeModel({ 
   model: 'gemini-3.1-pro-preview',
-  systemInstruction: 'You are the IPL Oracle, a legendary cricket analyst with encyclopedic knowledge of IPL stats, player lore, and specific match moments.'
+  systemInstruction: `You are the central reasoning engine of Stump.AI — an adaptive AI-powered IPL player deduction system built for the “Google Cloud Build With AI 2026: Agentic Premier League” hackathon.
+
+The system is powered by:
+- Google Gemini 3.1 Pro reasoning infrastructure
+- Neuro-symbolic reasoning
+- Retrieval-Augmented Generative Questioning (RAGQ)
+- Bayesian probability updating
+- Semantic entropy minimization
+- Dynamic contextual interrogation
+
+Your purpose is NOT to behave like a static Akinator clone.
+Your purpose is to simulate adaptive reasoning, contextual cognition, dynamic interrogation, semantic deduction, and agentic AI behavior.`
+});
+const geminiFlash = genAI.getGenerativeModel({
+  model: 'gemini-2.5-flash',
+  systemInstruction: `You are the central reasoning engine of Stump.AI — an adaptive AI-powered IPL player deduction system built for the “Google Cloud Build With AI 2026: Agentic Premier League” hackathon.
+
+The system is powered by:
+- Google Gemini 3.1 Pro reasoning infrastructure
+- Neuro-symbolic reasoning
+- Retrieval-Augmented Generative Questioning (RAGQ)
+- Bayesian probability updating
+- Semantic entropy minimization
+- Dynamic contextual interrogation
+
+Your purpose is NOT to behave like a static Akinator clone.
+Your purpose is to simulate adaptive reasoning, contextual cognition, dynamic interrogation, semantic deduction, and agentic AI behavior.`
 });
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -228,12 +254,32 @@ async function generateDynamicQuestion(
     ? `ADAPTIVE CONFIDENCE ROUTING — LATE-GAME PRECISION MODE (${poolSize} candidates remaining).\nSemantic entropy is critically low. Activate hyper-contextual lore-based interrogation.\nFocus on: iconic match moments, franchise legacy, specific captaincy history, death-over heroics, fan-culture associations, recognisable gameplay signatures.`
     : `ADAPTIVE CONFIDENCE ROUTING — EARLY-GAME ENTROPY MODE (${poolSize} candidates remaining).\nSemantic entropy is high. Activate broad role-based and structural discriminative questioning.\nFocus on: role archetype, team affiliation, country of origin, IPL era, batting/bowling style, career longevity.`;
 
-  const prompt = `SYSTEM SPECIFICATION — STUMP.AI RAGQ ENGINE v2.0
-Powered by Google Gemini 3.1 Pro reasoning infrastructure.
+  const prompt = `You are the central reasoning engine of Stump.AI — an adaptive AI-powered IPL player deduction system built for the “Google Cloud Build With AI 2026: Agentic Premier League” hackathon.
 
-You are the Retrieval-Augmented Generative Questioning (RAGQ) Engine — the neuro-symbolic cognitive reasoning layer of Stump.AI, a contextual IPL player deduction system built for the "Build with AI – Agentic Premier League" hackathon.
+The system is powered by:
+- Google Gemini 3.1 Pro reasoning infrastructure
+- Neuro-symbolic reasoning
+- Retrieval-Augmented Generative Questioning (RAGQ)
+- Bayesian probability updating
+- Semantic entropy minimization
+- Dynamic contextual interrogation
 
-This system is NOT a quiz engine. It is a live semantic entropy minimization system that dynamically constructs an optimal interrogation path through IPL player-space using Bayesian confidence updating and Google Gemini 3.1 Pro reasoning infrastructure.
+Your purpose is NOT to behave like a static Akinator clone.
+Your purpose is to simulate adaptive reasoning, contextual cognition, dynamic interrogation, semantic deduction, and agentic AI behavior.
+
+==================================================
+CORE PHILOSOPHY & NO STATIC QUESTION FLOW
+==================================================
+The system MUST feel intelligent, evolving, dynamic, contextual, conversational, and AI-native.
+You are STRICTLY FORBIDDEN from fixed sequences, static question trees, or hardcoded interrogation paths.
+Every question MUST emerge dynamically from previous answers and the surviving pool.
+
+==================================================
+HYBRID REASONING ARCHITECTURE
+==================================================
+- SYMBOLIC LAYER: Bayesian confidence, contradiction penalization.
+- SEMANTIC LAYER: Gemini 3.1 Pro contextual reasoning, dynamic questioning.
+- RETRIEVAL LAYER: Real-time candidate metadata injection.
 
 ==================================================
 CURRENT ROUTING DECISION
@@ -254,70 +300,33 @@ The following candidates are grounded in retrieved IPL metadata. Treat every att
 ${candidateProfiles.join('\n')}
 
 ==================================================
-OBJECTIVE — SEMANTIC ENTROPY MINIMIZATION
-==================================================
-Generate the SINGLE BEST discriminative YES/NO question that:
-1. Maximally reduces semantic entropy over the surviving candidate pool
-2. Applies to SOME but NOT ALL listed candidates (meaningful binary split)
-3. Does NOT repeat any question already in the Q&A Evidence Log above
-4. Sounds natural and human-like to an IPL cricket fan
-5. For every candidate ID, return TRUE (question applies) or FALSE (it does not)
-
-==================================================
 FACTUAL GROUNDING & HALLUCINATION PREVENTION
 ==================================================
 You MUST remain strictly grounded in the provided candidate metadata and retrieved IPL context above.
-
-You are STRICTLY FORBIDDEN from:
-- inventing IPL events, matches, or moments not inferable from provided metadata
-- fabricating player achievements or awards not present in candidate attributes
-- hallucinating franchise history or transfer records
-- generating false statistics or scorecards
-- creating fictional cricket lore or meme associations
-
-All generated questions MUST be inferable from:
-- retrieved candidate metadata (Role, Country, Teams, Era, Tags, DNA vectors)
-- semantic identity tags and aura embeddings above
-- historically verified IPL context derivable from the attributes shown
-
-If your confidence in a semantic association is LOW:
-- generate a BROADER but FACTUALLY SAFER discriminative question instead
-- prioritise factual consistency over excessive specificity
-
-Hallucination directly undermines system integrity during live demonstration.
+You are STRICTLY FORBIDDEN from inventing IPL events, fabricating records, or generating false lore.
 
 ==================================================
-ADAPTIVE QUESTION STYLE
+OUTPUT FORMAT
 ==================================================
-Adapt your questioning tone to the dominant identity space of the surviving pool:
-- Captains → leadership aura, franchise loyalty, strategic presence
-- Finishers → death-over composure, match-winning records
-- Mystery Spinners → unpredictability, economy rates, batting cameos
-- Power Hitters → six-hitting identity, aggressive batting style
-- Pace Bowlers → aggression, new-ball threat, economy under pressure
-
-==================================================
-CONSTRAINTS
-==================================================
-- No compound questions (avoid "and" / "or" constructions)
-- No impossible trivia or niche scorecards
-- Question must be answerable by any IPL fan with general knowledge
-- The question MUST produce a meaningful binary split (not 100% yes or 100% no)
-
-Return ONLY a JSON object matching this exact structure:
+Return STRICT JSON ONLY matching this structure:
 {
   "question": "The YES/NO question text",
   "hint": "A contextual hint for the user",
   "reasoning": "Why this question minimizes entropy",
-  "appliesTo": [
-    { "playerId": "string", "applies": true/false }
-  ]
+  "expected_split": {
+    "yes": ["playerId1", "playerId2"],
+    "no": ["playerId3"]
+  },
+  "confidence_gain": 0-100,
+  "candidate_pool_size": number,
+  "entropy_score": number,
+  "semantic_mode": "broad|contextual|precision"
 }
-The appliesTo array MUST contain one entry for every candidate ID listed above.`;
+Ensure every candidate ID provided in the pool is categorized into either the 'yes' or 'no' array in expected_split.`;
 
   try {
     const result = await withTimeout(
-      gemini.generateContent({
+      geminiFlash.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: isLateGame ? 0.75 : 0.6,
@@ -329,19 +338,20 @@ The appliesTo array MUST contain one entry for every candidate ID listed above.`
               question:   { type: SchemaType.STRING },
               hint:       { type: SchemaType.STRING },
               reasoning:  { type: SchemaType.STRING },
-              appliesTo: {
-                type: SchemaType.ARRAY,
-                items: {
-                  type: SchemaType.OBJECT,
-                  properties: {
-                    playerId: { type: SchemaType.STRING },
-                    applies:  { type: SchemaType.BOOLEAN }
-                  },
-                  required: ['playerId', 'applies']
-                }
-              }
+              expected_split: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  yes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                  no: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+                },
+                required: ['yes', 'no']
+              },
+              confidence_gain: { type: SchemaType.NUMBER },
+              candidate_pool_size: { type: SchemaType.NUMBER },
+              entropy_score: { type: SchemaType.NUMBER },
+              semantic_mode: { type: SchemaType.STRING }
             },
-            required: ['question', 'hint', 'appliesTo']
+            required: ['question', 'hint', 'expected_split']
           }
         },
       }),
@@ -359,8 +369,8 @@ The appliesTo array MUST contain one entry for every candidate ID listed above.`
     const parsed = JSON.parse(cleanText.trim());
 
     // Validate split quality — reject if all-yes or all-no
-    const yesCount = parsed.appliesTo.filter((a: {applies: boolean}) => a.applies).length;
-    const noCount = parsed.appliesTo.length - yesCount;
+    const yesCount = parsed.expected_split?.yes?.length || 0;
+    const noCount = parsed.expected_split?.no?.length || 0;
     if (yesCount === 0 || noCount === 0) {
       console.warn('[RAGQ] Rejected degenerate split (all-yes or all-no)');
       throw new Error(`Degenerate split (YES:${yesCount} NO:${noCount})`);
@@ -368,11 +378,14 @@ The appliesTo array MUST contain one entry for every candidate ID listed above.`
 
     // Convert array to dictionary
     const appliesToMap: Record<string, boolean> = {};
-    for (const item of parsed.appliesTo) {
-      appliesToMap[item.playerId] = item.applies;
+    if (parsed.expected_split?.yes) {
+      for (const id of parsed.expected_split.yes) appliesToMap[id] = true;
+    }
+    if (parsed.expected_split?.no) {
+      for (const id of parsed.expected_split.no) appliesToMap[id] = false;
     }
 
-    console.log(`[RAGQ] Q: "${parsed.question}" | YES:${yesCount} NO:${noCount} | Reasoning: ${parsed.reasoning ?? 'N/A'}`);
+    console.log(`[RAGQ] Q: "${parsed.question}" | YES:${yesCount} NO:${noCount} | Reasoning: ${parsed.reasoning ?? 'N/A'} | Mode: ${parsed.semantic_mode}`);
     return { ...parsed, appliesTo: appliesToMap };
 
   } catch (err) {
