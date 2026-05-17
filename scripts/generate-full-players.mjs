@@ -262,6 +262,26 @@ const SPECIAL_METADATA = {
     aura: { composed:0.4, aggressive:0.8, explosive:0.2, innovative:0.5, captainLike:0.1, silentKiller:0.8 },
     era: 'early',
   },
+  // Manual overrides for top players missing in the CSV
+  'fe93fd9d': { battingStyle: 'left', bowlingStyle: 'left-spin', identityTags: ['Sir Jadeja', 'CSK rock', 'best fielder', 'sword celebration'] },
+  '7dc35884': { country: 'Bangladesh', isOverseas: true, isIndian: false, battingStyle: 'left', bowlingStyle: 'left-spin' },
+  '9d430b40': { country: 'West Indies', isOverseas: true, isIndian: false, battingStyle: 'left', bowlingStyle: 'right-spin' },
+  'bbd41817': { country: 'West Indies', isOverseas: true, isIndian: false, battingStyle: 'right', bowlingStyle: 'right-fast' },
+  'dcce6f09': { country: 'Australia', isOverseas: true, isIndian: false, battingStyle: 'left' },
+  '3355b542': { country: 'South Africa', isOverseas: true, isIndian: false },
+  'b681e71e': { country: 'Australia', isOverseas: true, isIndian: false, battingStyle: 'right', bowlingStyle: 'right-spin', identityTags: ['Big Show', 'reverse sweep'] },
+  '5f547c8b': { country: 'Afghanistan', isOverseas: true, isIndian: false, battingStyle: 'right', bowlingStyle: 'right-spin' },
+  '495d42a5': { bowlingStyle: 'right-spin', identityTags: ['mankading', 'carrom ball'] },
+  '2e171977': { battingStyle: 'left', bowlingStyle: 'left-spin' },
+  'a757b0d8': { country: 'West Indies', isOverseas: true, isIndian: false, bowlingStyle: 'right-medium', identityTags: ['MI legend'] },
+  '57ee1fde': { bowlingStyle: 'right-spin' },
+  '4329fbb5': { country: 'Australia', isOverseas: true, isIndian: false, bowlingStyle: 'right-medium' },
+  '87e562a9': { country: 'West Indies', isOverseas: true, isIndian: false, bowlingStyle: 'right-medium', identityTags: ['Champion dance'] },
+  '0a476045': { battingStyle: 'left', identityTags: ['Gabbar', 'thigh slap'] },
+  'bb345e0b': { battingStyle: 'left', identityTags: ['KKR captain'] },
+  '919a3be2': { battingStyle: 'left', identityTags: ['one-handed six'] },
+  '1c914163': { battingStyle: 'left', bowlingStyle: 'left-spin', identityTags: ['six sixes'] },
+  '8ba8195d': { battingStyle: 'right', bowlingStyle: 'right-spin', identityTags: ['first ball boundary'] },
 };
 
 const LEGENDS = [

@@ -851,83 +851,6 @@ export const PLAYERS: Player[] = [
     "era": "early"
   },
   {
-    "id": "trent-boult",
-    "name": "Trent Boult",
-    "role": "bowler",
-    "battingStyle": "right",
-    "bowlingStyle": "left-fast",
-    "country": "New Zealand",
-    "isIndian": false,
-    "isOverseas": true,
-    "teams": ["MI", "RR", "SRH", "DC"],
-    "activeYears": [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
-    "titles": 1,
-    "orangeCap": false,
-    "purpleCap": false,
-    "centuries": false,
-    "fiveWickets": false,
-    "strikeRateAbove150": false,
-    "economyBelow7": false,
-    "retiredFromIPL": false,
-    "famousFor": "Powerplay specialist, lethal inswingers, RR spearhead",
-    "signatureFeat": "Most first-over wickets in IPL history",
-    "cluster": "overseas-pace-bowler",
-    "runsAbove2000": false,
-    "matchesAbove50": true,
-    "wicketsAbove50": true,
-    "wicketsAbove100": true,
-    "playedBefore2012": false,
-    "playedAfter2018": true,
-    "multipleTeams": true,
-    "singleTeamLoyal": false,
-    "primaryTeamRR": true,
-    "everPlayedMI": true,
-    "everPlayedRR": true,
-    "everPlayedSRH": true,
-    "identityDNA": { "deathBowler": 0.8, "paceAggressor": 0.95, "consistent": 0.9 },
-    "identityTags": ["Powerplay king", "left-arm thunderbolt", "RR opening bowler"],
-    "auraEmbedding": { "aggressive": 0.9, "composed": 0.7, "silentKiller": 0.8 },
-    "era": "modern"
-  },
-  {
-    "id": "mitchell-starc",
-    "name": "Mitchell Starc",
-    "role": "bowler",
-    "battingStyle": "left",
-    "bowlingStyle": "left-fast",
-    "country": "Australia",
-    "isIndian": false,
-    "isOverseas": true,
-    "teams": ["RCB", "KKR"],
-    "activeYears": [2014, 2015, 2024],
-    "titles": 1,
-    "orangeCap": false,
-    "purpleCap": false,
-    "centuries": false,
-    "fiveWickets": false,
-    "strikeRateAbove150": false,
-    "economyBelow7": false,
-    "retiredFromIPL": false,
-    "famousFor": "Yorker specialist, fastest bowler in the world, KKR record signing",
-    "signatureFeat": "Most expensive player in IPL auction history (2024)",
-    "cluster": "overseas-pace-bowler",
-    "runsAbove2000": false,
-    "matchesAbove50": false,
-    "wicketsAbove50": true,
-    "wicketsAbove100": false,
-    "playedBefore2012": false,
-    "playedAfter2018": true,
-    "multipleTeams": true,
-    "singleTeamLoyal": false,
-    "primaryTeamRCB": true,
-    "everPlayedRCB": true,
-    "everPlayedKKR": true,
-    "identityDNA": { "deathBowler": 0.95, "paceAggressor": 0.99, "consistent": 0.85 },
-    "identityTags": ["Yorker king", "fastest bowler", "KKR record buy"],
-    "auraEmbedding": { "aggressive": 0.99, "composed": 0.6, "explosive": 0.9 },
-    "era": "modern"
-  },
-  {
     "id": "jasprit-bumrah",
     "name": "Jasprit Bumrah",
     "role": "bowler",
@@ -1301,7 +1224,7 @@ export const PLAYERS: Player[] = [
     "id": "fe93fd9d",
     "name": "RA Jadeja",
     "role": "allrounder",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "right-medium",
     "country": "India",
     "isIndian": true,
@@ -1410,9 +1333,10 @@ export const PLAYERS: Player[] = [
       "consistent": 0.3
     },
     "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL stalwart"
+      "Sir Jadeja",
+      "CSK rock",
+      "best fielder",
+      "sword celebration"
     ],
     "auraEmbedding": {
       "composed": 0.5,
@@ -1554,7 +1478,7 @@ export const PLAYERS: Player[] = [
     "id": "0a476045",
     "name": "S Dhawan",
     "role": "batsman",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "right-fast",
     "country": "India",
     "isIndian": true,
@@ -1663,10 +1587,8 @@ export const PLAYERS: Player[] = [
       "consistent": 0.8
     },
     "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL centurion",
-      "IPL stalwart"
+      "Gabbar",
+      "thigh slap"
     ],
     "auraEmbedding": {
       "composed": 0.8,
@@ -1788,9 +1710,8 @@ export const PLAYERS: Player[] = [
       "consistent": 0.3
     },
     "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL stalwart"
+      "mankading",
+      "carrom ball"
     ],
     "auraEmbedding": {
       "composed": 0.26,
@@ -2422,11 +2343,11 @@ export const PLAYERS: Player[] = [
     "id": "9d430b40",
     "name": "SP Narine",
     "role": "allrounder",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "right-medium",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "West Indies",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "KKR"
     ],
@@ -2670,9 +2591,9 @@ export const PLAYERS: Player[] = [
     "role": "allrounder",
     "battingStyle": "right",
     "bowlingStyle": "right-fast",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "West Indies",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "MI"
     ],
@@ -2768,10 +2689,7 @@ export const PLAYERS: Player[] = [
       "consistent": 0.3
     },
     "identityTags": [
-      "MI loyalist",
-      "match-winner",
-      "death overs match finisher",
-      "IPL stalwart"
+      "MI legend"
     ],
     "auraEmbedding": {
       "composed": 0.47,
@@ -3028,11 +2946,11 @@ export const PLAYERS: Player[] = [
     "id": "dcce6f09",
     "name": "DA Warner",
     "role": "batsman",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "none",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "Australia",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "SRH",
       "DC"
@@ -3519,7 +3437,7 @@ export const PLAYERS: Player[] = [
     "id": "2e171977",
     "name": "AR Patel",
     "role": "allrounder",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "right-medium",
     "country": "India",
     "isIndian": true,
@@ -4127,9 +4045,9 @@ export const PLAYERS: Player[] = [
     "role": "allrounder",
     "battingStyle": "right",
     "bowlingStyle": "right-fast",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "West Indies",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "GL",
       "MI",
@@ -4229,8 +4147,7 @@ export const PLAYERS: Player[] = [
       "consistent": 0.3
     },
     "identityTags": [
-      "death over specialist",
-      "IPL stalwart"
+      "Champion dance"
     ],
     "auraEmbedding": {
       "composed": 0.21,
@@ -4486,7 +4403,7 @@ export const PLAYERS: Player[] = [
     "id": "bb345e0b",
     "name": "G Gambhir",
     "role": "batsman",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "none",
     "country": "India",
     "isIndian": true,
@@ -4586,9 +4503,7 @@ export const PLAYERS: Player[] = [
       "consistent": 0.8
     },
     "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL stalwart"
+      "KKR captain"
     ],
     "auraEmbedding": {
       "composed": 0.83,
@@ -4605,9 +4520,9 @@ export const PLAYERS: Player[] = [
     "role": "batsman",
     "battingStyle": "right",
     "bowlingStyle": "none",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "South Africa",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "DC",
       "RCB",
@@ -5086,9 +5001,9 @@ export const PLAYERS: Player[] = [
     "role": "allrounder",
     "battingStyle": "right",
     "bowlingStyle": "right-medium",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "Afghanistan",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "SRH",
       "GT"
@@ -5202,9 +5117,9 @@ export const PLAYERS: Player[] = [
     "role": "allrounder",
     "battingStyle": "right",
     "bowlingStyle": "right-medium",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "Australia",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "RCB",
       "CSK",
@@ -5560,9 +5475,9 @@ export const PLAYERS: Player[] = [
     "role": "allrounder",
     "battingStyle": "right",
     "bowlingStyle": "right-fast",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "Australia",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "RCB",
       "PBKS",
@@ -5662,9 +5577,8 @@ export const PLAYERS: Player[] = [
       "consistent": 0.3
     },
     "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL stalwart"
+      "Big Show",
+      "reverse sweep"
     ],
     "auraEmbedding": {
       "composed": 0.34,
@@ -5923,9 +5837,9 @@ export const PLAYERS: Player[] = [
     "role": "allrounder",
     "battingStyle": "right",
     "bowlingStyle": "right-fast",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "West Indies",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "DC",
       "KKR"
@@ -6040,7 +5954,7 @@ export const PLAYERS: Player[] = [
     "id": "919a3be2",
     "name": "RR Pant",
     "role": "batsman",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "none",
     "country": "India",
     "isIndian": true,
@@ -6138,10 +6052,7 @@ export const PLAYERS: Player[] = [
       "consistent": 0.8
     },
     "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL centurion",
-      "IPL stalwart"
+      "one-handed six"
     ],
     "auraEmbedding": {
       "composed": 0.57,
@@ -6156,7 +6067,7 @@ export const PLAYERS: Player[] = [
     "id": "1c914163",
     "name": "Yuvraj Singh",
     "role": "allrounder",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "right-medium",
     "country": "India",
     "isIndian": true,
@@ -6260,8 +6171,7 @@ export const PLAYERS: Player[] = [
       "consistent": 0.8
     },
     "identityTags": [
-      "death overs match finisher",
-      "IPL stalwart"
+      "six sixes"
     ],
     "auraEmbedding": {
       "composed": 0.61,
@@ -9348,10 +9258,7 @@ export const PLAYERS: Player[] = [
       "consistent": 0.8
     },
     "identityTags": [
-      "match-winner",
-      "death overs match finisher",
-      "IPL centurion",
-      "IPL stalwart"
+      "first ball boundary"
     ],
     "auraEmbedding": {
       "composed": 0.65,
@@ -15865,11 +15772,11 @@ export const PLAYERS: Player[] = [
     "id": "7dc35884",
     "name": "Shakib Al Hasan",
     "role": "allrounder",
-    "battingStyle": "right",
+    "battingStyle": "left",
     "bowlingStyle": "right-medium",
-    "country": "India",
-    "isIndian": true,
-    "isOverseas": false,
+    "country": "Bangladesh",
+    "isIndian": false,
+    "isOverseas": true,
     "teams": [
       "SRH",
       "KKR"
