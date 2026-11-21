@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-const fullData = JSON.parse(fs.readFileSync('players_computed_full.json', 'utf8'));
+const fullData = JSON.parse(fs.readFileSync('data/players_computed_full.json', 'utf8'));
 
 // ── 50+ Binary Fingerprints ────────────────────────────────────────────────
 function computeFingerprint(p) {

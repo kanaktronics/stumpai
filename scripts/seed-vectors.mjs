@@ -13,7 +13,7 @@ const index = new Index({
   token: process.env.UPSTASH_VECTOR_REST_TOKEN.replace(/"/g, ''),
 });
 
-const players = JSON.parse(fs.readFileSync('players_computed_full.json', 'utf8'));
+const players = JSON.parse(fs.readFileSync('data/players_computed_full.json', 'utf8'));
 
 async function getEmbedding(text) {
   const result = await model.embedContent(text);
